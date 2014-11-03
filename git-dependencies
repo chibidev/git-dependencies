@@ -45,7 +45,7 @@ def update_deps(recursive):
 	for path in sections:
 		wd = os.getcwd()
 		if (not os.path.exists(path)):
-			rc = os.system('git clone ' + config[path]['url'] + ' ' + path)
+			rc = os.system('git clone --recursive ' + config[path]['url'] + ' ' + path)
 			if (rc != 0):
 				error('Command failed')
 		
@@ -54,7 +54,7 @@ def update_deps(recursive):
 			if (os.path.exists(GITDEPENDS_FILE)):
 				update_deps(recursive)
 				
-		gitCommand = 'git pull --all'
+		gitCommand = 'git pull origin'
 		if (config.has_option(path, 'freezed')):
 			gitCommand += ' ' + config[path]['freezed']
 		rc = os.system(gitCommand)
@@ -62,6 +62,9 @@ def update_deps(recursive):
 			error('Command failed')
 		rc = os.system('git checkout ' + config[path]['ref'])
 		if (rc != 0):
+			error('Command failed')
+		rc = os.system('git submodule update --init --recursive')
+		if (rc != 0):	
 			error('Command failed')
 		os.chdir(wd)
 		
@@ -110,7 +113,32 @@ def unfreeze_deps(recursive):
 	rc = os.system('git commit -m "Unfreezing dependencies" -- ./' + GITDEPENDS_FILE)
 	if (rc != 0):
 		error('Command failed')
-	
+        
+def dump_deps(recursive, dumpHeader):
+	config = configparser.ConfigParser()
+	config.read(GITDEPENDS_FILE)
+	sections = config.sections()
+	for path in sections:
+		wd = os.getcwd()
+		os.chdir(path)
+		if (recursive):
+			if (os.path.exists(GITDEPENDS_FILE)):
+				dump_deps(recursive)
+		proc = subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], stdout=subprocess.PIPE)
+		branch = proc.stdout.read().decode("utf-8").strip()
+		proc = subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD@{upstream}'], stdout=subprocess.PIPE)
+		remote = proc.stdout.read().decode("utf-8").strip()
+		proc = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
+		hash = proc.stdout.read().decode("utf-8").strip()
+		if (not dumpHeader):
+			print ('Dependency ' + path + ' is following ' + branch + ' (tracking: ' + remote + ') is now at rev ' + hash)
+		else:
+			sanitizedPath = path.replace('/', '_').replace(' ', '_').upper();
+			print ('#define ' + sanitizedPath + '_BRANCH "' + branch + '"')
+			print ('#define ' + sanitizedPath + '_REMOTE "' + remote + '"')
+			print ('#define ' + sanitizedPath + '_HASH "' + hash + '"')
+			print ('')
+		os.chdir(wd)
 
 def call_command(args):
 	if (not os.path.isdir('.git')):
@@ -125,10 +153,13 @@ def call_command(args):
 		freeze_deps(args.recursive)
 	elif (args.command == 'unfreeze'):
 		unfreeze_deps(args.recursive)
+	elif (args.command == 'dump'):
+		dump_deps(args.recursive, args.dump_header)
 
 parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze'])
+parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump'])
 parser.add_argument('arg0', nargs='?', default='')
 parser.add_argument('arg1', nargs='?', default='')
 parser.add_argument('arg2', nargs='?', default='')
