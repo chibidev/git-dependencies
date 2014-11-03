@@ -1,0 +1,138 @@
+#!/opt/local/bin/python3.4
+
+import argparse
+import os
+import os.path
+import sys
+import configparser
+import subprocess
+
+GITDEPENDS_FILE = '.gitdepends'
+
+def error(*objs):
+	print('Error:', *objs, file=sys.stderr)
+	sys.exit(2)
+
+def add_dep(url, path, ref):
+	if (ref == ''):
+		ref = 'master'
+	if (os.path.exists(path)):
+		if (os.listdir(path) != []):
+			error(path + ' is not empty!')
+	config = configparser.ConfigParser()
+	if (os.path.exists(GITDEPENDS_FILE)):
+		config.read(GITDEPENDS_FILE)
+	config.add_section(path)
+	config[path]['url'] = url
+	config[path]['ref'] = ref
+	with open(GITDEPENDS_FILE, 'w') as configFile:
+		config.write(configFile)
+		
+	with open('.gitignore', 'a') as ignoreFile:
+		ignoreFile.write(path + os.linesep)
+		
+def rm_dep(path):
+	config = configparser.ConfigParser()
+	config.read(GITDEPENDS_FILE)
+	config.remove_section(path)
+	with open(GITDEPENDS_FILE, 'w') as configFile:
+		config.write(configFile)
+		
+def update_deps(recursive):
+	config = configparser.ConfigParser()
+	config.read(GITDEPENDS_FILE)
+	sections = config.sections()
+	for path in sections:
+		wd = os.getcwd()
+		if (not os.path.exists(path)):
+			rc = os.system('git clone ' + config[path]['url'] + ' ' + path)
+			if (rc != 0):
+				error('Command failed')
+		
+		os.chdir(path)
+		if (recursive):
+			if (os.path.exists(GITDEPENDS_FILE)):
+				update_deps(recursive)
+				
+		gitCommand = 'git pull --all'
+		if (config.has_option(path, 'freezed')):
+			gitCommand += ' ' + config[path]['freezed']
+		rc = os.system(gitCommand)
+		if (rc != 0):
+			error('Command failed')
+		rc = os.system('git checkout ' + config[path]['ref'])
+		if (rc != 0):
+			error('Command failed')
+		os.chdir(wd)
+		
+def freeze_deps(recursive):
+	config = configparser.ConfigParser()
+	config.read(GITDEPENDS_FILE)
+	sections = config.sections()
+	for path in sections:
+		wd = os.getcwd()
+		os.chdir(path)
+		if (recursive):
+			if (os.path.exists(GITDEPENDS_FILE)):
+				freeze_deps(recursive)
+		proc = subprocess.Popen(['git', 'rev-parse', config[path]['ref']], stdout=subprocess.PIPE)
+		hash = proc.stdout.read().decode("utf-8").strip()
+		rc = os.system('git checkout ' + hash)
+		if (rc != 0):
+			error('Command failed')
+		config[path]['freezed'] = config[path]['ref']
+		config[path]['ref'] = hash
+		os.chdir(wd)
+	with open(GITDEPENDS_FILE, 'w') as configFile:
+		config.write(configFile)
+	rc = os.system('git commit -m "Freezing dependencies" -- ./' + GITDEPENDS_FILE)
+	if (rc != 0):
+		error('Command failed')
+		
+def unfreeze_deps(recursive):
+	config = configparser.ConfigParser()
+	config.read(GITDEPENDS_FILE)
+	sections = config.sections()
+	for path in sections:
+		wd = os.getcwd()
+		os.chdir(path)
+		if (recursive):
+			if (os.path.exists(GITDEPENDS_FILE)):
+				unfreeze_deps(recursive)
+		rc = os.system('git checkout ' + config[path]['freezed'])
+		if (rc != 0):
+			error('Command failed')
+		config[path]['ref'] = config[path]['freezed']
+		config.remove_option(path, 'freezed')
+		os.chdir(wd)
+	with open(GITDEPENDS_FILE, 'w') as configFile:
+		config.write(configFile)
+	rc = os.system('git commit -m "Unfreezing dependencies" -- ./' + GITDEPENDS_FILE)
+	if (rc != 0):
+		error('Command failed')
+	
+
+def call_command(args):
+	if (not os.path.isdir('.git')):
+		error('Not a git repository')
+	if (args.command == 'add'):
+		add_dep(args.arg0, args.arg1, args.arg2)
+	elif (args.command == 'remove' or args.command == 'rm'):
+		rm_dep(args.arg0)
+	elif (args.command == 'update'):
+		update_deps(args.recursive)
+	elif (args.command == 'freeze'):
+		freeze_deps(args.recursive)
+	elif (args.command == 'unfreeze'):
+		unfreeze_deps(args.recursive)
+
+parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
+parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze'])
+parser.add_argument('arg0', nargs='?', default='')
+parser.add_argument('arg1', nargs='?', default='')
+parser.add_argument('arg2', nargs='?', default='')
+
+args = parser.parse_args()
+# print(args)
+call_command(args)
