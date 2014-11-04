@@ -38,40 +38,59 @@ def rm_dep(path):
 	with open(GITDEPENDS_FILE, 'w') as configFile:
 		config.write(configFile)
 		
-def update_deps(recursive):
+def update_deps(recursive, path):
 	config = configparser.ConfigParser()
 	config.read(GITDEPENDS_FILE)
-	sections = config.sections()
+	if (path == '*'):
+		sections = config.sections()
+	else:
+		sections = [path]
 	for path in sections:
 		wd = os.getcwd()
 		if (not os.path.exists(path)):
 			rc = os.system('git clone --recursive ' + config[path]['url'] + ' ' + path)
 			if (rc != 0):
 				error('Command failed')
-		
+
 		os.chdir(path)
 		if (recursive):
 			if (os.path.exists(GITDEPENDS_FILE)):
 				update_deps(recursive)
-				
-		gitCommand = 'git pull origin'
-		if (config.has_option(path, 'freezed')):
-			gitCommand += ' ' + config[path]['freezed']
-		rc = os.system(gitCommand)
+
+		rc = os.system('git checkout --quiet ' + config[path]['ref'])
 		if (rc != 0):
 			error('Command failed')
-		rc = os.system('git checkout ' + config[path]['ref'])
+		rc = os.system('git fetch --quiet origin')
 		if (rc != 0):
 			error('Command failed')
+		if (not config.has_option(path, 'freezed')):
+			proc = subprocess.Popen(['git', 'rev-parse', 'FETCH_HEAD'], stdout=subprocess.PIPE)
+			fetchHead = proc.stdout.read().decode("utf-8").strip()
+			proc = subprocess.Popen(['git', 'rev-parse', 'HEAD'], stdout=subprocess.PIPE)
+			head = proc.stdout.read().decode("utf-8").strip()
+
+			proc = subprocess.Popen(['git', 'log', '--oneline', '--color=always', head + '..' + fetchHead], stdout=subprocess.PIPE)
+			commits = proc.stdout.read().decode("utf-8").strip()
+			rc = os.system('git rebase --quiet --autostash')
+			if (rc != 0):
+				error('Command failed')
+
+			if (commits != ''):
+				print ('Commits integrated to ' + path + ':')
+				for line in iter(commits.splitlines()):
+					print ("\t" + line)
 		rc = os.system('git submodule update --init --recursive')
 		if (rc != 0):	
 			error('Command failed')
 		os.chdir(wd)
 		
-def freeze_deps(recursive):
+def freeze_deps(recursive, path):
 	config = configparser.ConfigParser()
 	config.read(GITDEPENDS_FILE)
-	sections = config.sections()
+	if (path == '*'):
+		sections = config.sections()
+	else:
+		sections = [path]
 	for path in sections:
 		wd = os.getcwd()
 		os.chdir(path)
@@ -92,10 +111,13 @@ def freeze_deps(recursive):
 	if (rc != 0):
 		error('Command failed')
 		
-def unfreeze_deps(recursive):
+def unfreeze_deps(recursive, path):
 	config = configparser.ConfigParser()
 	config.read(GITDEPENDS_FILE)
-	sections = config.sections()
+	if (path == '*'):
+		sections = config.sections()
+	else:
+		sections = [path]
 	for path in sections:
 		wd = os.getcwd()
 		os.chdir(path)
@@ -114,10 +136,13 @@ def unfreeze_deps(recursive):
 	if (rc != 0):
 		error('Command failed')
         
-def dump_deps(recursive, dumpHeader):
+def dump_deps(recursive, path, dumpHeader):
 	config = configparser.ConfigParser()
 	config.read(GITDEPENDS_FILE)
-	sections = config.sections()
+	if (path == '*'):
+		sections = config.sections()
+	else:
+		sections = [path]
 	for path in sections:
 		wd = os.getcwd()
 		os.chdir(path)
@@ -148,13 +173,21 @@ def call_command(args):
 	elif (args.command == 'remove' or args.command == 'rm'):
 		rm_dep(args.arg0)
 	elif (args.command == 'update'):
-		update_deps(args.recursive)
+		if (args.arg0 == ''):
+			args.arg0 = '*'
+		update_deps(args.recursive, args.arg0)
 	elif (args.command == 'freeze'):
-		freeze_deps(args.recursive)
+		if (args.arg0 == ''):
+			args.arg0 = '*'
+		freeze_deps(args.recursive, args.arg0)
 	elif (args.command == 'unfreeze'):
-		unfreeze_deps(args.recursive)
+		if (args.arg0 == ''):
+			args.arg0 = '*'
+		unfreeze_deps(args.recursive, args.arg0)
 	elif (args.command == 'dump'):
-		dump_deps(args.recursive, args.dump_header)
+		if (args.arg0 == ''):
+			args.arg0 = '*'
+		dump_deps(args.recursive, args.arg0, args.dump_header)
 
 parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
