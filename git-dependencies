@@ -53,9 +53,6 @@ def update_deps(recursive, path):
 				error('Command failed')
 
 		os.chdir(path)
-		if (recursive):
-			if (os.path.exists(GITDEPENDS_FILE)):
-				update_deps(recursive)
 
 		rc = os.system('git checkout --quiet ' + config[path]['ref'])
 		if (rc != 0):
@@ -79,6 +76,10 @@ def update_deps(recursive, path):
 				print ('Commits integrated to ' + path + ':')
 				for line in iter(commits.splitlines()):
 					print ("\t" + line)
+		if (recursive):
+			if (os.path.exists(GITDEPENDS_FILE)):
+				update_deps(recursive, '*')
+
 		rc = os.system('git submodule update --init --recursive')
 		if (rc != 0):	
 			error('Command failed')
