@@ -1,4 +1,4 @@
-#!/opt/local/bin/python3.4
+#!/usr/bin/env python3.4
 
 import argparse
 import os
@@ -149,7 +149,7 @@ def dump_deps(recursive, path, dumpHeader):
 		os.chdir(path)
 		if (recursive):
 			if (os.path.exists(GITDEPENDS_FILE)):
-				dump_deps(recursive)
+				dump_deps(recursive, '*', dumpHeader)
 		proc = subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD'], stdout=subprocess.PIPE)
 		branch = proc.stdout.read().decode("utf-8").strip()
 		proc = subprocess.Popen(['git', 'rev-parse', '--abbrev-ref', 'HEAD@{upstream}'], stdout=subprocess.PIPE)
