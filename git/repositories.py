@@ -66,7 +66,7 @@ class GitRepository:
 		args = ['submodule', 'update', '--init']
 		if (recursive):
 			args += ['--recursive']
-		self.__runGitTask(args)
+		self.__runGitTask(args, False)
 		
 	def currentBranch(self, upstream = False):
 		ref = 'HEAD'
@@ -89,13 +89,23 @@ class GitRepository:
 			submodules += [path]
 		return submodules
 		
-	def __runGitTask(self, arguments):
-		if (self.gitPath != None):
-			arguments = ['--git-dir=' + self.gitPath] + arguments
+	def __runGitTask(self, arguments, useConfig = True):
+		wd = os.getcwd()
+		if (useConfig):
+			arguments = ['--work-tree=' + self.repositoryPath] + arguments
+			if (self.gitPath != None):
+				arguments = ['--git-dir=' + self.gitPath] + arguments
+		else:
+			os.chdir(self.repositoryPath)
 			
 		# print('zserhardt@zserhardt-iMac:' + os.getcwd() + '$ git ' + ' '.join(arguments))
 			
 		task = Task('git').run(arguments)
+		if (task.exitCode() != 0):
+			print(task.output)
+
+		if (not useConfig):
+			os.chdir(wd)
 		
 		return task
 		
@@ -127,6 +137,11 @@ class GitDependenciesRepository(GitRepository):
 		
 	def clone(self, branch = 'master'):
 		super().clone(branch)
+		self.__loadDependenciesFile()
+
+	def checkout(self, ref):
+		super().checkout(ref)
+		self.config = None
 		self.__loadDependenciesFile()
 	
 	def addDependency(self, url, path, ref = 'master'):
@@ -165,8 +180,8 @@ class GitDependenciesRepository(GitRepository):
 				d.clone(self.config[p]['ref'])
 			else:
 				print ('Updating ' + dependencyPath)
-				d.checkout(self.config[p]['ref'])
 				d.fetch('origin', self.config[p]['ref'])
+				d.checkout(self.config[p]['ref'])
 				d.integrateChanges(self.config[p]['ref'])
 				d.updateSubmodules(recursive)
 			
@@ -248,5 +263,6 @@ class GitDependenciesRepository(GitRepository):
 			return
 		if (self.config != None):
 			return
+		# print ('Reading ' + filePath)
 		self.config = configparser.ConfigParser()
 		self.config.read(filePath)
