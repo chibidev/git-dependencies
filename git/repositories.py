@@ -2,6 +2,7 @@ import configparser
 import os
 import os.path
 import atexit
+import sys
 
 from cmdtask import Task
 
@@ -102,7 +103,7 @@ class GitRepository:
 			
 		task = Task('git').run(arguments)
 		if (task.exitCode() != 0):
-			print(task.output)
+			print(task.output, file=sys.stderr)
 
 		if (not useConfig):
 			os.chdir(wd)
