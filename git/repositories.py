@@ -69,18 +69,26 @@ class GitRepository:
 		self.__runGitTask(args, False)
 		
 	def currentBranch(self, upstream = False):
-		ref = 'HEAD'
-		if (upstream):
-			ref += '@{upstream}'
-			
-		return self.__runGitTask(['rev-parse', '--abbrev-ref', ref]).output
+		return self.revParse('HEAD', upstream, True)
 		
 	def currentSha(self):
-		return self.__runGitTask(['rev-parse', 'HEAD']).output
+		return self.revParse('HEAD')
 		
 	def commit(self, message, files = []):
 		arguments = ['commit', '-m', message, '--'] + files;
 		self.__runGitTask(arguments).output
+
+	def revParse(self, rev, upstream = False, abbreviate = False):
+		if (upstream):
+			rev += '@{upstream}'
+
+		args = ['rev-parse']
+		if (abbreviate):
+			args += ['--abbrev-ref']
+
+		args += [rev]
+
+		return self.__runGitTask(args).output
 		
 	def submodules(self):
 		submodules = []
@@ -209,8 +217,8 @@ class GitDependenciesRepository(GitRepository):
 		for p in sections:
 			d = GitDependenciesRepository(self.config[p]['url'], os.path.join(self.repositoryPath, p))
 			if (self.config.has_option(p, 'freezed')):
-				breanch = self.config[p]['freezed']
-				upstream = self.__runGitTask(['rev-parse', '--abbrev-ref', self.config[p]['freezed'] + "@{upstream}"]).output
+				branch = self.config[p]['freezed']
+				upstream = d.revParse(self.config[p]['freezed'], upstream = True, abbreviate = True)
 			else:
 				branch = d.currentBranch(upstream = False)
 				upstream = d.currentBranch(upstream = True)
