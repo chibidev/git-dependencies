@@ -208,12 +208,16 @@ class GitDependenciesRepository(GitRepository):
 			sections = [path]
 		for p in sections:
 			d = GitDependenciesRepository(self.config[p]['url'], os.path.join(self.repositoryPath, p))
-			branch = d.currentBranch(upstream = False)
-			upstream = d.currentBranch(upstream = True)
+			if (self.config.has_option(p, 'freezed')):
+				breanch = self.config[p]['freezed']
+				upstream = self.__runGitTask(['rev-parse', '--abbrev-ref', self.config[p]['freezed'] + "@{upstream}"]).output
+			else:
+				branch = d.currentBranch(upstream = False)
+				upstream = d.currentBranch(upstream = True)
 			hash = d.currentSha()
 			
 			if (not dumpHeader):
-				print ('Dependency ' + p + ' is following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
+				print ('Dependency ' + p + ' following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
 			else:
 				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper();
 				print ('#define ' + sanitizedPath + '_BRANCH "' + branch + '"')
