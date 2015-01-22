@@ -179,7 +179,7 @@ class GitDependenciesRepository(GitRepository):
 			if (not os.path.exists(dependencyPath)):
 				print (dependencyPath + ' was not found, cloning into dependency...')
 				if (self.config.has_option(p, 'freezed')):
-					d.clone()
+					d.clone(self.config[p]['freezed'])
 					d.checkout(self.config[p]['ref'])
 				else:
 					d.clone(self.config[p]['ref'])
