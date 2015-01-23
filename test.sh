@@ -269,9 +269,19 @@ function DependencyRecursiveUnfreezeTest() {
     expect [[ $(git rev-parse --abbrev-ref HEAD) == 'master' ]]
 }
 
+function DependencyDumpAfterFreezeTest() {
+    cd project
+    expect git dependencies add '../dependency' dep master
+    git add .
+    git commit -m 'Adding dependency'
+    expect git dependencies freeze
+    expect git dependencies dump
+}
+
 # TODO
 # 1. test submodules
 # 2. test selective commands (with dependency path specified)
+# 3. test command execution on subpath
 
 pushd $(dirname $0) > /dev/null
 SCRIPTPATH=$(pwd)
