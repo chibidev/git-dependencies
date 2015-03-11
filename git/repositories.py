@@ -278,7 +278,34 @@ class GitDependenciesRepository(GitRepository):
 			# self.checkout(self.config[p]['ref'])
 		self.__saveDependenciesFile()
 		self.commit(message = 'Unfreezing dependencies', files = [GITDEPENDS_FILE])
-	
+
+	def foreachDependency(self, command, recursive = False):
+		if (self.config == None):
+			return
+
+		runCommand = command
+		if (runCommand.startswith('!sh ')):
+			runCommand = command[4:]
+			i = runCommand.index(' ')
+			task = Task(runCommand[:i])
+			runCommand = runCommand[i + 1:]
+		else:
+			task = Task('git')
+
+		for p in self.config.sections():
+			d = GitDependenciesRepository(self.config[p]['url'], os.path.join(self.repositoryPath, p))
+			wd = os.getcwd()
+			os.chdir(d.repositoryPath)
+			task.run(runCommand.split(' '))
+			if (task.output != ''):
+				print(task.output, file=sys.stderr)
+			if (task.exitCode() != 0):
+				sys.exit(task.exitCode())
+			os.chdir(wd)
+			if (recursive):
+				d.foreachDependency(command, True)
+
+
 	def __saveDependenciesFile(self):
 		if (self.config == None):
 			return

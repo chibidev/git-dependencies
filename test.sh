@@ -278,6 +278,53 @@ function DependencyDumpAfterFreezeTest() {
     expect git dependencies dump
 }
 
+function DependencyForeachGitCommandTest() {
+    local branch='test'
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies add "../dependency2" dep2 master
+    expect git dependencies update
+    git add .
+    git commit -m 'Adding dependencies'
+    expect git dependencies foreach "\"checkout -b $branch\""
+    cd dep
+    expect [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]]
+    cd ../dep2
+    expect [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]]
+}
+
+function DependencyForeachShellCommandTest() {
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies add "../dependency2" dep2 master
+    expect git dependencies update
+    git add .
+    git commit -m 'Adding dependencies'
+
+    expect git dependencies foreach '"!sh touch test"'
+    expect [[ -e "dep/test" ]]
+    expect [[ -e "dep2/test" ]]
+}
+
+function DependencyForeachRecurseTest() {
+    local branch='test'
+    cd dependency
+    expect git dependencies add '../dependency2' dep master
+    git add .
+    git commit -m 'Adding dependency'
+    cd ../project
+    expect git dependencies add '../dependency' dep master
+    git add .
+    git commit -m 'Adding dependency'
+    expect git dependencies update -r
+    expect git dependencies -r foreach "\"checkout -b $branch\""
+
+    cd dep
+    expect [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]]
+    cd dep
+    expect [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]]
+}
+
 # TODO
 # 1. test submodules
 # 2. test selective commands (with dependency path specified)
@@ -289,4 +336,4 @@ popd > /dev/null
 
 export PATH=$SCRIPTPATH:$PATH
 
-run_tests
+run_tests "$1"

@@ -26,13 +26,16 @@ def call_command(args):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
 		repo.dumpDependency(args.arg0, args.recursive, args.dump_header)
+	elif (args.command == 'foreach'):
+		repo.foreachDependency(args.arg0, args.recursive)
+
 	#for submodule in repo.submodules():
 	#	print(submodule)
 
 parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump'])
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach'])
 parser.add_argument('arg0', nargs='?', default='')
 parser.add_argument('arg1', nargs='?', default='')
 parser.add_argument('arg2', nargs='?', default='')
