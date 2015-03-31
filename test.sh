@@ -325,6 +325,77 @@ function DependencyForeachRecurseTest() {
     expect [[ $(git rev-parse --abbrev-ref HEAD) == "$branch" ]]
 }
 
+# function DependencyForeachPipeTest() {
+#     cd project
+#     expect git dependencies add '../dependency' dep master
+#     git add .
+#     git commit -m 'Adding dependency'
+#     expect git dependencies update -r
+#     git dependencies foreach '!sh cat README | grep lines'
+# }
+#
+# function DependencyForeachSubCommandTest() {
+#     cd project
+#     expect git dependencies add '../dependency' dep master
+#     git add .
+#     git commit -m 'Adding dependency'
+#     expect git dependencies update -r
+#     expect [[ "$(git dependencies foreach '!sh echo `cat README`')" == "some lines" ]]
+# }
+#
+# function DependencyForeachRedirectOutputTest() {
+#     cd project
+#     expect git dependencies add '../dependency' dep master
+#     git add .
+#     git commit -m 'Adding dependency'
+#     expect git dependencies update -r
+#     git dependencies foreach '!sh cat README > README2'
+# }
+
+function DependencyUpdateTestUrlModificationWithNoChange() {
+	cd dependency2
+	local hash=$(git rev-parse HEAD)
+	cd ../project
+	expect git dependencies add '../dependency' dep master
+	git add .
+	git commit -m 'Adding dependency'
+
+	expect git dependencies update -r
+	
+	sed -i .bak 's/url = .*/url = ..\/dependency2/' .gitdepends
+	expect git dependencies update
+	cd dep
+	expect [[ "$(git rev-parse HEAD)" == "$hash" ]]
+}
+
+function DependencyUpdateTestUrlModificationWithUnpushedChange() {
+	cd dependency2
+	local hash=$(git rev-parse HEAD)
+	cd ../project
+	expect git dependencies add '../dependency' dep master
+	git add .
+	git commit -m 'Adding dependency'
+	
+	expect git dependencies update -r
+	
+	cd dep
+	touch kortefa
+	git add kortefa
+	git commit -m 'kortefa'
+	
+	cd ..
+	
+	sed -i .bak 's/url = .*/url = ..\/dependency2/' .gitdepends
+	expect git dependencies update
+	cd dep
+	expect [[ "$(git rev-parse HEAD^)" == "$hash" ]]
+	expect [[ -f kortefa ]]
+	expect [[ "$(git status -s)" == "" ]]
+}
+
+# function DependencyUpdateTestRecursiveUrlModificationWithNoChange() {
+# }
+
 # TODO
 # 1. test submodules
 # 2. test selective commands (with dependency path specified)

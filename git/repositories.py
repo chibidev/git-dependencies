@@ -97,6 +97,9 @@ class GitRepository:
 			submodules += [path]
 		return submodules
 		
+	def setRemoteURL(self, remote, url):
+		self.__runGitTask(['remote', 'set-url', remote, url])
+		
 	def __runGitTask(self, arguments, useConfig = True):
 		wd = os.getcwd()
 		if (useConfig):
@@ -192,6 +195,7 @@ class GitDependenciesRepository(GitRepository):
 				else:
 					d.clone(self.config[p]['ref'])
 			else:
+				d.setRemoteURL('origin', self.config[p]['url'])
 				print ('Updating ' + dependencyPath)
 				if (self.config.has_option(p, 'freezed')):
 					d.fetch('origin', self.config[p]['freezed'])
