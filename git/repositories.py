@@ -12,7 +12,7 @@ class GitRepository:
 		self.repositoryPath = path
 		self.gitPath = None;
 		self.remoteURL = url;
-		
+
 		if (os.path.exists(self.repositoryPath)):
 			self.__findGitRoot()
 			self.__findGitDirectory()
@@ -24,29 +24,29 @@ class GitRepository:
 		if (branch != None):
 			arguments += ['--branch', branch]
 		arguments += [self.remoteURL, self.repositoryPath]
-		
+
 		task = Task('git')
 		task.run(arguments)
 		if (task.exitCode() != 0):
 			raise ValueError(task.output)
-		
+
 		self.__findGitRoot()
 		self.__findGitDirectory()
-			
+
 	def checkout(self, ref):
 		currentBranch = self.currentBranch(upstream = False)
 		# TODO check if ref is freezed (sha1)
 		if (currentBranch != ref):
 			task = self.__runGitTask(['checkout', ref])
-		
+
 	def fetch(self, remote, ref):
 		task = self.__runGitTask(['fetch', remote, ref])
 		# TODO log
-	
+
 	def integrateChanges(self, ref):
 		fetchHead = self.__runGitTask(['rev-parse', 'FETCH_HEAD']).output
 		head = self.__runGitTask(['rev-parse', 'HEAD']).output
-		
+
 		if (fetchHead == head):
 			# TODO verbose log
 			return
@@ -59,7 +59,7 @@ class GitRepository:
 			for line in iter(logTask.output.splitlines()):
 				print ("\t" + line)
 		self.__runGitTask(['rebase', '--autostash']).output
-		
+
 	def updateSubmodules(self, recursive):
 		# for submodule in self.submodules():
 		# 	print(submodule)
@@ -67,13 +67,13 @@ class GitRepository:
 		if (recursive):
 			args += ['--recursive']
 		self.__runGitTask(args, False)
-		
+
 	def currentBranch(self, upstream = False):
 		return self.revParse('HEAD', upstream, True)
-		
+
 	def currentSha(self):
 		return self.revParse('HEAD')
-		
+
 	def commit(self, message, files = []):
 		arguments = ['commit', '-m', message, '--'] + files;
 		self.__runGitTask(arguments).output
@@ -89,14 +89,14 @@ class GitRepository:
 		args += [rev]
 
 		return self.__runGitTask(args).output
-		
+
 	def submodules(self):
 		submodules = []
 		self.__runGitTask(['submodule', 'init'])
 		for path in iter(self.__runGitTask(['submodule', 'foreach', '-q', 'echo $path']).output.splitlines()):
 			submodules += [path]
 		return submodules
-		
+
 	def __runGitTask(self, arguments, useConfig = True):
 		wd = os.getcwd()
 		if (useConfig):
@@ -105,9 +105,9 @@ class GitRepository:
 				arguments = ['--git-dir=' + self.gitPath] + arguments
 		else:
 			os.chdir(self.repositoryPath)
-			
+
 		# print('zserhardt@zserhardt-iMac:' + os.getcwd() + '$ git ' + ' '.join(arguments))
-			
+
 		task = Task('git').run(arguments)
 		if (task.exitCode() != 0):
 			print(task.output, file=sys.stderr)
@@ -115,9 +115,9 @@ class GitRepository:
 
 		if (not useConfig):
 			os.chdir(wd)
-		
+
 		return task
-		
+
 	def __findGitRoot(self):
 		wd = os.getcwd()
 		os.chdir(self.repositoryPath)
@@ -138,12 +138,12 @@ class GitRepository:
 class GitDependenciesRepository(GitRepository):
 	def __init__(self, url='', path = '.'):
 		super().__init__(url, path)
-		
+
 		self.config = None
-		
+
 		self.__loadDependenciesFile()
 		# atexit.register(self.__saveDependenciesFile)
-		
+
 	def clone(self, branch = 'master'):
 		super().clone(branch)
 		self.__loadDependenciesFile()
@@ -152,27 +152,27 @@ class GitDependenciesRepository(GitRepository):
 		super().checkout(ref)
 		self.config = None
 		self.__loadDependenciesFile()
-	
+
 	def addDependency(self, url, path, ref = 'master'):
 		if (os.path.exists(path) and (os.listdir(path) != [])):
 			raise ValueError('%s is not empty' % path)
 
 		if (self.config == None):
 			self.config = configparser.ConfigParser()
-			
+
 		self.config.add_section(path)
 		self.config[path]['url'] = url
 		self.config[path]['ref'] = ref
-		
+
 		# TODO should not do it here
 		with open('.gitignore', 'a') as ignoreFile:
 			ignoreFile.write(path + os.linesep)
-		
+
 		self.__saveDependenciesFile()
-			
+
 	def removeDependency(self, path):
 		self.config.remove_section(path)
-		
+
 	def updateDependencies(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
@@ -201,12 +201,12 @@ class GitDependenciesRepository(GitRepository):
 					d.checkout(self.config[p]['ref'])
 					d.integrateChanges(self.config[p]['ref'])
 				d.updateSubmodules(recursive)
-			
+
 			d.__loadDependenciesFile()
-			
+
 			if (recursive):
 				d.updateDependencies('*', recursive)
-			
+
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
 			return
@@ -223,7 +223,7 @@ class GitDependenciesRepository(GitRepository):
 				branch = d.currentBranch(upstream = False)
 				upstream = d.currentBranch(upstream = True)
 			hash = d.currentSha()
-			
+
 			if (not dumpHeader):
 				print ('Dependency ' + p + ' following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
 			else:
@@ -234,7 +234,7 @@ class GitDependenciesRepository(GitRepository):
 				print ('')
 			if (recursive):
 				d.dumpDependency('*', recursive, dumpHeader)
-			
+
 	def freezeDependency(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
@@ -243,21 +243,24 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [path]
 		for p in sections:
+			if 'freezed' in self.config[p]:  # avoid duplicate freeze
+				continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if (not os.path.exists(dependencyPath)):
 				self.updateDependencies(p, False)
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 			if (recursive):
 				d.freezeDependency('*', recursive)
-			
+
 			hash = d.currentSha()
 			self.config[p]['freezed'] = self.config[p]['ref']
 			self.config[p]['ref'] = hash
-			
+
 			self.updateDependencies(p, False)
 		self.__saveDependenciesFile()
 		self.commit(message = 'Freezing dependencies', files = [GITDEPENDS_FILE])
-	
+
 	def unfreezeDependency(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
@@ -266,15 +269,18 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [path]
 		for p in sections:
+			if 'freezed' not in self.config[p]:  # avoid unfreeze when not frozen
+				continue
+
 			self.config[p]['ref'] = self.config[p]['freezed']
 			self.config.remove_option(p, 'freezed')
-			
+
 			self.updateDependencies(p, False)
-			
+
 			d = GitDependenciesRepository(self.config[p]['url'], os.path.join(self.repositoryPath, p))
 			if (recursive):
 				d.unfreezeDependency('*', recursive)
-			
+
 			# self.checkout(self.config[p]['ref'])
 		self.__saveDependenciesFile()
 		self.commit(message = 'Unfreezing dependencies', files = [GITDEPENDS_FILE])
@@ -312,7 +318,7 @@ class GitDependenciesRepository(GitRepository):
 
 		with open(os.path.join(self.repositoryPath, GITDEPENDS_FILE), 'w') as configFile:
 			self.config.write(configFile)
-	
+
 	def __loadDependenciesFile(self):
 		if (not os.path.exists(self.repositoryPath)):
 			return
