@@ -68,7 +68,7 @@ function DependencyBranchSwitchTest() {
     expect [[ ! -e README_FEATURE ]]
     expect [[ $(git rev-parse --abbrev-ref HEAD) == "master" ]]
     cd ..
-    sed -i .orig 's/ref = master/ref = feature/' .gitdepends
+    sed -i.orig 's/ref = master/ref = feature/' .gitdepends
     git dependencies update
     cd dep
     expect [[ -e README_FEATURE ]]
@@ -87,7 +87,7 @@ function DependencyBranchSwitchToNewBranchOnRemoteTest() {
     git commit -m 'Some additional change'
     hash=$(git rev-parse HEAD)
     cd ../project
-    sed -i .orig 's/ref = master/ref = feature/' .gitdepends
+    sed -i.orig 's/ref = master/ref = feature/' .gitdepends
     expect git dependencies update
     cd dep
     expect [[ -e README_FEATURE ]]
@@ -362,7 +362,7 @@ function DependencyUpdateTestUrlModificationWithNoChange() {
 
 	expect git dependencies update -r
 	
-	sed -i .bak 's/url = .*/url = ..\/dependency2/' .gitdepends
+	sed -i.bak 's/url = .*/url = ..\/dependency2/' .gitdepends
 	expect git dependencies update
 	cd dep
 	expect [[ "$(git rev-parse HEAD)" == "$hash" ]]
@@ -385,7 +385,7 @@ function DependencyUpdateTestUrlModificationWithUnpushedChange() {
 	
 	cd ..
 	
-	sed -i .bak 's/url = .*/url = ..\/dependency2/' .gitdepends
+	sed -i.bak 's/url = .*/url = ..\/dependency2/' .gitdepends
 	expect git dependencies update
 	cd dep
 	expect [[ "$(git rev-parse HEAD^)" == "$hash" ]]
