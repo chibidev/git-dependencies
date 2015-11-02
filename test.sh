@@ -12,6 +12,20 @@ function create_repo() {
     cd ..
 }
 
+function create_test_branch_on_remote() {
+    cd $1
+    pwd
+    git branch almafa
+    cd ..
+}
+
+function create_test_branch() {
+    cd $1
+    pwd
+    git checkout -b almafa
+    cd ..
+}
+
 function setup() {
     create_repo dependency2 > /dev/null
     create_repo dependency > /dev/null
@@ -22,6 +36,55 @@ function DependencyAddTest() {
     cd project
     expect git dependencies add "../dependency" dep master
     expect [[ -f .gitdepends ]]
+    expect "[[ \"$(cat .gitdepends | grep 'ref = master')\" != '' ]]"
+}
+
+function DependencySetTest() {
+    create_test_branch dependency
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies update dep
+    expect [[ -f .gitdepends ]]
+    expect git dependencies set dep almafa
+    expect "[[ \"$(cat .gitdepends | grep 'ref = almafa')\" != '' ]]"
+}
+
+function DependencySetRemoteRefTest() {
+    create_test_branch_on_remote dependency
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies update dep
+    expect [[ -f .gitdepends ]]
+    expect git dependencies set dep almafa
+    expect "[[ \"$(cat .gitdepends | grep 'ref = almafa')\" != '' ]]"
+}
+
+function DependencySetWithoutExplicitUpdateTest() {
+    create_test_branch dependency
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect [[ -f .gitdepends ]]
+    expect git dependencies set dep almafa
+    expect "[[ \"$(cat .gitdepends | grep 'ref = almafa')\" != '' ]]"
+}
+
+function DependencySetInvalidRefTest() {
+    create_test_branch dependency
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies update dep
+    expect [[ -f .gitdepends ]]
+    expect git dependencies set dep kortefa
+    expect "[[ \"$(cat .gitdepends | grep 'ref = master')\" != '' ]]"
+}
+
+function DependencySetInvalidPathTest() {
+    create_test_branch dependency
+    cd project
+    expect git dependencies add "../dependency" dep master
+    expect git dependencies update dep
+    expect [[ -f .gitdepends ]]
+    expect git dependencies set bananfa kortefa
     expect "[[ \"$(cat .gitdepends | grep 'ref = master')\" != '' ]]"
 }
 
@@ -361,7 +424,7 @@ function DependencyUpdateTestUrlModificationWithNoChange() {
 	git commit -m 'Adding dependency'
 
 	expect git dependencies update -r
-	
+
 	sed -i.bak 's/url = .*/url = ..\/dependency2/' .gitdepends
 	expect git dependencies update
 	cd dep
@@ -375,16 +438,16 @@ function DependencyUpdateTestUrlModificationWithUnpushedChange() {
 	expect git dependencies add '../dependency' dep master
 	git add .
 	git commit -m 'Adding dependency'
-	
+
 	expect git dependencies update -r
-	
+
 	cd dep
 	touch kortefa
 	git add kortefa
 	git commit -m 'kortefa'
-	
+
 	cd ..
-	
+
 	sed -i.bak 's/url = .*/url = ..\/dependency2/' .gitdepends
 	expect git dependencies update
 	cd dep
@@ -400,6 +463,7 @@ function DependencyUpdateTestUrlModificationWithUnpushedChange() {
 # 1. test submodules
 # 2. test selective commands (with dependency path specified)
 # 3. test command execution on subpath
+# 4. test DependencySet with commit hash
 
 pushd $(dirname $0) > /dev/null
 SCRIPTPATH=$(pwd)
