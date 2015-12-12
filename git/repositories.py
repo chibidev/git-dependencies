@@ -17,10 +17,20 @@ class GitRepository:
 			self.__findGitRoot()
 			self.__findGitDirectory()
 
+	def _shouldUsePools(self):
+		task = Task('which').run(['git-pool'])
+		if (task.exitCode() != 0):
+			return False
+		else:
+			return True
+
 	def clone(self, branch = None):
 		if (os.path.exists(self.repositoryPath)):
 			return
-		arguments = ['clone', '--recursive']
+		arguments = []
+		if (self._shouldUsePools()):
+			arguments = ['pool']
+		arguments += ['clone', '--recursive']
 		if (branch != None):
 			arguments += ['--branch', branch]
 		arguments += [self.remoteURL, self.repositoryPath]
@@ -37,15 +47,15 @@ class GitRepository:
 		currentBranch = self.currentBranch(upstream = False)
 		# TODO check if ref is freezed (sha1)
 		if (currentBranch != ref):
-			task = self.__runGitTask(['checkout', ref])
+			task = self._runGitTask(['checkout', ref])
 
 	def fetch(self, remote, ref):
-		task = self.__runGitTask(['fetch', remote, ref])
+		task = self._runGitTask(['fetch', remote, ref])
 		# TODO log
 
 	def integrateChanges(self, ref):
-		fetchHead = self.__runGitTask(['rev-parse', 'FETCH_HEAD']).output
-		head = self.__runGitTask(['rev-parse', 'HEAD']).output
+		fetchHead = self._runGitTask(['rev-parse', 'FETCH_HEAD']).output
+		head = self._runGitTask(['rev-parse', 'HEAD']).output
 
 		if (fetchHead == head):
 			# TODO verbose log
@@ -53,12 +63,12 @@ class GitRepository:
 		logArgs = ['log', '--oneline', head + '..' + fetchHead]
 #		if (curses.has_colors()):
 		logArgs += ['--color=always']
-		logTask = self.__runGitTask(logArgs)
+		logTask = self._runGitTask(logArgs)
 		if (logTask.output != ''):
 			print ('Commits integrated into ' + self.repositoryPath + ':')
 			for line in iter(logTask.output.splitlines()):
 				print ("\t" + line)
-		self.__runGitTask(['rebase', '--autostash']).output
+		self._runGitTask(['rebase', '--autostash']).output
 
 	def updateSubmodules(self, recursive):
 		# for submodule in self.submodules():
@@ -66,7 +76,7 @@ class GitRepository:
 		args = ['submodule', 'update', '--init']
 		if (recursive):
 			args += ['--recursive']
-		self.__runGitTask(args, False)
+		self._runGitTask(args, False)
 
 	def currentBranch(self, upstream = False):
 		return self.revParse('HEAD', upstream, True)
@@ -76,7 +86,7 @@ class GitRepository:
 
 	def commit(self, message, files = []):
 		arguments = ['commit', '-m', message, '--'] + files;
-		self.__runGitTask(arguments).output
+		self._runGitTask(arguments).output
 
 	def revParse(self, rev, upstream = False, abbreviate = False):
 		if (upstream):
@@ -88,23 +98,23 @@ class GitRepository:
 
 		args += [rev]
 
-		return self.__runGitTask(args).output
+		return self._runGitTask(args).output
 
 	def submodules(self):
 		submodules = []
-		self.__runGitTask(['submodule', 'init'])
-		for path in iter(self.__runGitTask(['submodule', 'foreach', '-q', 'echo $path']).output.splitlines()):
+		self._runGitTask(['submodule', 'init'])
+		for path in iter(self._runGitTask(['submodule', 'foreach', '-q', 'echo $path']).output.splitlines()):
 			submodules += [path]
 		return submodules
 
 	def setRemoteURL(self, remote, url):
-		self.__runGitTask(['remote', 'set-url', remote, url])
+		self._runGitTask(['remote', 'set-url', remote, url])
 
 	def isRefValid(self, ref):
-		exitCode = self.__runGitTask(['rev-parse', '--verify', ref], exitOnError = False).exitCode()
+		exitCode = self._runGitTask(['rev-parse', '--verify', ref], exitOnError = False).exitCode()
 		return exitCode == 0
 
-	def __runGitTask(self, arguments, useConfig = True, exitOnError = True):
+	def _runGitTask(self, arguments, useConfig = True, exitOnError = True):
 		wd = os.getcwd()
 		if (useConfig):
 			arguments = ['--work-tree=' + self.repositoryPath] + arguments
@@ -128,7 +138,7 @@ class GitRepository:
 	def __findGitRoot(self):
 		wd = os.getcwd()
 		os.chdir(self.repositoryPath)
-		self.repositoryPath = os.path.abspath(self.__runGitTask(['rev-parse', '--show-toplevel']).output)
+		self.repositoryPath = os.path.abspath(self._runGitTask(['rev-parse', '--show-toplevel']).output)
 		os.chdir(wd)
 
 	def __findGitDirectory(self):
@@ -137,7 +147,7 @@ class GitRepository:
 
 		wd = os.getcwd()
 		os.chdir(self.repositoryPath)
-		task = self.__runGitTask(['rev-parse', '--git-dir'])
+		task = self._runGitTask(['rev-parse', '--git-dir'])
 		if (task.exitCode() == 0):
 			self.gitPath = os.path.abspath(task.output)
 		os.chdir(wd)
@@ -200,6 +210,12 @@ class GitDependenciesRepository(GitRepository):
 					d.clone(self.config[p]['ref'])
 			else:
 				d.setRemoteURL('origin', self.config[p]['url'])
+				if (self._shouldUsePools()):
+					task = self._runGitTask(['pool', 'relink', p, self.config[p]['url']])
+					if (task.exitCode() != 0):
+						print(task.output, file=sys.stderr)
+						sys.exit(task.exitCode())
+
 				print ('Updating ' + dependencyPath)
 				if (self.config.has_option(p, 'freezed')):
 					d.fetch('origin', self.config[p]['freezed'])

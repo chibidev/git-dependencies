@@ -12,14 +12,14 @@ function create_repo() {
     cd ..
 }
 
-function create_test_branch_on_remote() {
+function create_branch_on_remote() {
     cd $1
     pwd
     git branch almafa
     cd ..
 }
 
-function create_test_branch() {
+function create_branch() {
     cd $1
     pwd
     git checkout -b almafa
@@ -40,7 +40,7 @@ function DependencyAddTest() {
 }
 
 function DependencySetTest() {
-    create_test_branch dependency
+    create_branch dependency
     cd project
     expect git dependencies add "../dependency" dep master
     expect git dependencies update dep
@@ -50,7 +50,7 @@ function DependencySetTest() {
 }
 
 function DependencySetRemoteRefTest() {
-    create_test_branch_on_remote dependency
+    create_branch_on_remote dependency
     cd project
     expect git dependencies add "../dependency" dep master
     expect git dependencies update dep
@@ -60,7 +60,7 @@ function DependencySetRemoteRefTest() {
 }
 
 function DependencySetWithoutExplicitUpdateTest() {
-    create_test_branch dependency
+    create_branch dependency
     cd project
     expect git dependencies add "../dependency" dep master
     expect [[ -f .gitdepends ]]
@@ -69,7 +69,7 @@ function DependencySetWithoutExplicitUpdateTest() {
 }
 
 function DependencySetInvalidRefTest() {
-    create_test_branch dependency
+    create_branch dependency
     cd project
     expect git dependencies add "../dependency" dep master
     expect git dependencies update dep
@@ -79,7 +79,7 @@ function DependencySetInvalidRefTest() {
 }
 
 function DependencySetInvalidPathTest() {
-    create_test_branch dependency
+    create_branch dependency
     cd project
     expect git dependencies add "../dependency" dep master
     expect git dependencies update dep
@@ -458,6 +458,23 @@ function DependencyUpdateTestUrlModificationWithUnpushedChange() {
 
 # function DependencyUpdateTestRecursiveUrlModificationWithNoChange() {
 # }
+
+function DependencyUpdateTestWithUTF8Character() {
+    cd project
+    expect git dependencies add '../dependency' dep master
+    git add .
+    git commit -m 'Adding dependency'
+
+    expect git dependencies update -r
+
+    cd ../dependency
+    touch almafa
+    git add .
+    git commit -m '”'
+
+    cd ../project
+    expect git dependencies update -r
+}
 
 # TODO
 # 1. test submodules
