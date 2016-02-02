@@ -303,6 +303,9 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [cleanPath]
 		for p in sections:
+			if 'freezed' in self.config[p]:
+				continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if (not os.path.exists(dependencyPath)):
 				self.updateDependencies(p, False)
@@ -327,6 +330,9 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [cleanPath]
 		for p in sections:
+			if 'freezed' not in self.config[p]:
+				continue
+
 			self.config[p]['ref'] = self.config[p]['freezed']
 			self.config.remove_option(p, 'freezed')
 
