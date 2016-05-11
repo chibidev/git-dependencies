@@ -468,12 +468,6 @@ class GitDependenciesRepository(GitRepository):
 			print("Removing symbolic link " + path)
 			os.remove(path)
 
-	def __removeFromDependencyStore(self, key):
-		try:
-			del GitDependenciesRepository.dependencyStore[key]
-		except KeyError:
-			pass
-
 	def __cleanPath(self, path):
 		return path.rstrip('/')
 
