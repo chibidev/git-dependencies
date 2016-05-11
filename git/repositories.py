@@ -9,7 +9,7 @@ from cmdtask import Task
 GITDEPENDS_FILE = '.gitdepends'
 
 class GitRepository:
-	def __init__(self, url='', path='.'):
+	def __init__(self, url = '', path = '.'):
 		self.repositoryPath = path
 		self.gitPath = None
 		self.remoteURL = url
@@ -25,7 +25,7 @@ class GitRepository:
 		else:
 			return True
 
-	def clone(self, branch=None):
+	def clone(self, branch = None):
 		if (os.path.exists(self.repositoryPath)):
 			return
 		arguments = []
@@ -79,17 +79,17 @@ class GitRepository:
 			args += ['--recursive']
 		self._runGitTask(args, False)
 
-	def currentBranch(self, upstream=False):
+	def currentBranch(self, upstream = False):
 		return self.revParse('HEAD', upstream, True)
 
 	def currentSha(self):
 		return self.revParse('HEAD')
 
-	def commit(self, message, files=[]):
+	def commit(self, message, files = []):
 		arguments = ['commit', '-m', message, '--'] + files
 		self._runGitTask(arguments).output
 
-	def revParse(self, rev, upstream=False, abbreviate=False):
+	def revParse(self, rev, upstream = False, abbreviate = False):
 		if (upstream):
 			rev += '@{upstream}'
 
@@ -115,7 +115,7 @@ class GitRepository:
 		exitCode = self._runGitTask(['rev-parse', '--verify', ref], exitOnError = False).exitCode()
 		return exitCode == 0
 
-	def _runGitTask(self, arguments, useConfig=True, exitOnError=True):
+	def _runGitTask(self, arguments, useConfig = True, exitOnError = True):
 		wd = os.getcwd()
 		if (useConfig):
 			arguments = ['--work-tree=' + self.repositoryPath] + arguments
@@ -156,7 +156,7 @@ class GitRepository:
 
 class GitDependenciesRepository(GitRepository):
 	dependencyStore = {}
-	def __init__(self, url='', path='.'):
+	def __init__(self, url = '', path = '.'):
 		super().__init__(url, path)
 
 		self.config = None
@@ -164,7 +164,7 @@ class GitDependenciesRepository(GitRepository):
 		self.__loadDependenciesFile()
 		# atexit.register(self.__saveDependenciesFile)
 
-	def clone(self, branch='master'):
+	def clone(self, branch = 'master'):
 		super().clone(branch)
 		self.__loadDependenciesFile()
 
@@ -173,7 +173,7 @@ class GitDependenciesRepository(GitRepository):
 		self.config = None
 		self.__loadDependenciesFile()
 
-	def addDependency(self, url, path, ref='master'):
+	def addDependency(self, url, path, ref = 'master'):
 		if (os.path.exists(path) and (os.listdir(path) != [])):
 			raise ValueError('%s is not empty' % path)
 
@@ -193,7 +193,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path='*', recursive=False):
+	def updateDependencies(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -246,7 +246,7 @@ class GitDependenciesRepository(GitRepository):
 				d.__loadDependenciesFile()
 				d.updateDependencies('*', recursive)
 
-	def dumpDependency(self, path='*', recursive=False, dumpHeader=False):
+	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -300,7 +300,7 @@ class GitDependenciesRepository(GitRepository):
 
 		if(self.__isSymlink(dependencyPath)):
 			realPath = self.__resolveSymlinkRealPath(dependencyPath)
-			sys.exit(p + ' is a symlink to '+ realPath +'. Terminating operation.')
+			sys.exit(p + ' is a symlink to ' + realPath + '. Terminating operation.')
 
 		d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 
@@ -321,7 +321,7 @@ class GitDependenciesRepository(GitRepository):
 		self.config[p]['ref'] = ref
 		self.__saveDependenciesFile()
 
-	def freezeDependency(self, path='*', recursive=False):
+	def freezeDependency(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
 	   
@@ -350,7 +350,7 @@ class GitDependenciesRepository(GitRepository):
 		self.__saveDependenciesFile()
 		self.commit(message = 'Freezing dependencies', files = [GITDEPENDS_FILE])
 
-	def unfreezeDependency(self, path='*', recursive=False):
+	def unfreezeDependency(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
 
@@ -376,7 +376,7 @@ class GitDependenciesRepository(GitRepository):
 		self.__saveDependenciesFile()
 		self.commit(message = 'Unfreezing dependencies', files = [GITDEPENDS_FILE])
 
-	def foreachDependency(self, command, recursive=False):
+	def foreachDependency(self, command, recursive = False):
 		if (self.config == None):
 			return
 
@@ -408,7 +408,7 @@ class GitDependenciesRepository(GitRepository):
 			if (recursive):
 				d.foreachDependency(command, True)
 
-	def ensureNoSymlinkExistsInDependencySubtree(self, path='*', recursive=False):
+	def ensureNoSymlinkExistsInDependencySubtree(self, path = '*', recursive = False):
 		if (self.config == None):
 			return
 		
@@ -426,7 +426,7 @@ class GitDependenciesRepository(GitRepository):
 
 			if (self.__isSymlink(dependencyPath)):
 				realPath = self.__resolveSymlinkRealPath(dependencyPath)
-				sys.exit('Error: '+ dependencyPath + ' is a symlink to ' + realPath + '. Terminating operation.')
+				sys.exit('Error: ' + dependencyPath + ' is a symlink to ' + realPath + '. Terminating operation.')
 
 		for p in sections:
 			dependencyPath = os.path.join(self.repositoryPath, p)
