@@ -498,7 +498,8 @@ function DependencyCommandSetterTests() {
   expect [[ ${#result3} -eq 0 ]]
 }
 
-function DependencyCommandRunnerTests() {
+function DependencyCommandRunnerTests_SimpleDep() {
+
   cd dependency
   echo $'#!/bin/bash\n\necho \"Hello World!\"' > sample.sh
   chmod u+x sample.sh
@@ -512,6 +513,40 @@ function DependencyCommandRunnerTests() {
   expect git dependencies update -r
 
   git dependencies command dep "!sh sh ./dep/sample.sh > hello.txt"
+
+  git dependencies update
+
+  expect [[ -f hello.txt ]]
+  expect [[ "\"$(cat hello.txt)\"" == "\"Hello World!\"" ]]
+
+  git dependencies command dep "!sh ln -s dep/README README_LINK"
+  git dependencies update
+  expect [[ -L README_LINK ]]
+}
+
+function DependencyCommandRunnerTests_MultipleDep() {
+
+  create_repo subDependency > /dev/null
+
+  cd subDependency
+  echo $'#!/bin/bash\n\necho \"Hello World!\"' > sample.sh
+  git add .
+  git commit -m "Add Shell script"
+  local subDependencyPath="$(pwd)"
+
+  cd ../dependency
+  expect git dependencies add "$subDependencyPath" sub master
+  git add .
+  git commit -m "Add subDependency"
+
+  cd ../project
+  expect git dependencies add '../dependency' dep master
+  git add .
+  git commit -m 'Adding dependency'
+
+  expect git dependencies update -r
+
+  git dependencies command dep "!sh sh ./dep/sub/sample.sh > hello.txt"
   cat .gitdepends
   git dependencies update
 

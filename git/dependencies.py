@@ -85,6 +85,11 @@ class GitDependenciesRepository(GitRepository):
 					d.integrateChanges(self.config[p]['ref'])
 				d.updateSubmodules(recursive)
 
+			d.__loadDependenciesFile()
+
+			if (recursive):
+				d.updateDependencies('*', recursive)
+
 			if self.config.has_option(p, 'command'):
 				command = self.config[p]['command']
 				print('Run command: ' + command)
@@ -92,11 +97,6 @@ class GitDependenciesRepository(GitRepository):
 				task.run()
 				if (task.output != ''):
 					print(task.output, file=sys.stderr)
-
-			d.__loadDependenciesFile()
-
-			if (recursive):
-				d.updateDependencies('*', recursive)
 
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
