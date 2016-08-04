@@ -2,3 +2,82 @@ git-dependencies
 ================
 
 A git extension for managing dependencies that come from git repositories
+
+#### Commands
+
+* `add [url] [path] [ref]` add new git dependency
+  * **url**: git repository url
+  * **path**: where the dependency should be checked out
+  * **ref**: which ref (branch) should be followed _(master, feature/sample)_
+  ```bash
+  git dependencies add https://example.com/hello.git dep/hello master
+  ```
+
+
+* `rm [path]` or `remove [path]` remove dependency
+  * **path**: path of dependency
+  ```bash
+  git dependencies rm dep/hello master
+  ```
+
+
+* `update [path]` update dependencies
+  * **path**: path of dependency. It is an optional parameter, its default value is ***** which means update every dependencies.
+  ```bash
+  git dependencies update
+  ```
+
+
+* `freeze [path]` freeze dependency to a specific commit on a specific branch (SHA1)
+  * **path**: path of dependency. It is an optional parameter, its default value is ***** which means freeze every dependencies.
+  ```bash
+  git dependencies freeze dep/hello
+  ```
+
+
+* `unfreeze` unfreeze dependency - follow a specific branch HEAD again
+  * **path**: path of dependency. It is an optional parameter, its default value is ***** which means unfreeze every dependencies.
+  ```bash
+  git dependencies unfreeze dep/hello
+  ```
+
+
+* `dump` write current dependencies and its HEAD ref to stdout
+  ```bash
+  git dependencies dump
+  ```
+
+
+* `foreach [command]` iterate over dependencies and run a specific command
+  * **command**: git or shell command
+  ```bash
+  # it writes remote urls of dependencies to stdout
+  git dependencies foreach "remote get-url origin"
+  ```
+
+
+* `set [path] [ref]` change followed ref (branch) of an existing dependency
+  * **path**: path of dependency.
+  * **ref**: which ref (branch) should be followed _(master, feature/sample)_
+  ```bash
+  git dependencies set dep/hello develop
+  ```
+
+
+* `command` set a command for a dependency which will run after if that dependency has been updated.
+  * **command**: git or shell command
+  ```bash
+  # run hello.py
+  git dependencies command dep/hello "sh! python3 hello.py"
+  # run git command
+  git dependencies command dep/hello "rev-parse HEAD"
+  ```
+  
+
+#### Other flags
+
+* `-r` or `--recursive`: use it if you want to run command on dependencies of dependency
+  * **commands** : `update`, `freeze`, `unfreeze`, `dump`, `foreach`
+
+* `-d` or `--dump-header`: dump revision informations as preprocessor macros
+  * **commands** : `dump`
