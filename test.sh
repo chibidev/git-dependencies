@@ -524,18 +524,43 @@ function DependencyCommandRunnerTests_SimpleDep() {
   expect [[ -L README_LINK ]]
 }
 
-function DependencyCommandRunnerTests_MultipleDep() {
+function DependencyCommandRunnerTests_MultipleDep_ShellCmd() {
 
   create_repo subDependency > /dev/null
 
   cd subDependency
-  echo $'#!/bin/bash\n\necho \"Hello World!\"' > sample.sh
-  git add .
-  git commit -m "Add Shell script"
   local subDependencyPath="$(pwd)"
 
   cd ../dependency
   expect git dependencies add "$subDependencyPath" sub master
+  git dependencies command sub "!sh pwd"
+  git add .
+  git commit -m "Add subDependency"
+  local dependencyPath="$(pwd)"
+
+  cd ../project
+  local projectPath="$(pwd)"
+  expect git dependencies add "$dependencyPath" dep master
+  git dependencies command dep "!sh pwd"
+  git add .
+  git commit -m 'Adding dependency'
+
+  git dependencies update -r > update.log
+
+  expect [[ "\"$(cat update.log | head -3 | tail -1)\"" == *"\"$projectPath/dep\"" ]]
+  expect [[ "\"$(cat update.log | head -4 | tail -1)\"" == *"\"$projectPath\"" ]]
+}
+
+function DependencyCommandRunnerTests_MultipleDep_GitTask() {
+
+  create_repo subDependency > /dev/null
+
+  cd subDependency
+  local subDependencyPath="$(pwd)"
+
+  cd ../dependency
+  expect git dependencies add "$subDependencyPath" sub master
+  expect git dependencies command sub "\"--no-pager shortlog -sne\""
   git add .
   git commit -m "Add subDependency"
 
@@ -544,19 +569,12 @@ function DependencyCommandRunnerTests_MultipleDep() {
   git add .
   git commit -m 'Adding dependency'
 
-  expect git dependencies update -r
+  usernameEmail="$(echo "$(git config user.name) <$(git config user.email)>")"
 
-  git dependencies command dep "!sh sh ./dep/sub/sample.sh > hello.txt"
-  cat .gitdepends
-  git dependencies update
-
-  expect [[ -f hello.txt ]]
-  expect [[ "\"$(cat hello.txt)\"" == "\"Hello World!\"" ]]
-
-  git dependencies command dep "!sh ln -s dep/README README_LINK"
-  git dependencies update
-  expect [[ -L README_LINK ]]
+  expect git dependencies update -r > update.log
+  expect [[ "\"$(cat update.log | head -3 | tail -1)\"" == *"\"$usernameEmail\"" ]]
 }
+
 
 # TODO
 # 1. test submodules
