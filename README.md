@@ -68,11 +68,11 @@ A git extension for managing dependencies that come from git repositories
   * **command**: git or shell command
   ```bash
   # run hello.py
-  git dependencies command dep/hello "sh! python3 hello.py"
+  git dependencies command dep/hello "!sh python3 hello.py"
   # run git command
   git dependencies command dep/hello "rev-parse HEAD"
   ```
-  
+
 
 #### Other flags
 

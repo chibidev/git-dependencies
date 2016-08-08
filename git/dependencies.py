@@ -91,12 +91,17 @@ class GitDependenciesRepository(GitRepository):
 				d.updateDependencies('*', recursive)
 
 			if self.config.has_option(p, 'command'):
-				command = self.config[p]['command']
-				print('Run command: ' + command)
-				task = ShellTask(command[4:])
-				task.run()
+				print("Run command on dependency ({})".format(p), file=sys.stderr)
+				with ChangeDir(self.repositoryPath):
+					runCommand = self.config[p]['command']
+					if (runCommand.startswith("!sh ")):
+						task = ShellTask(runCommand[4:])
+						task.run()
+					else:
+						task = Task('git')
+						task.run(runCommand.split(' '))
 				if (task.output != ''):
-					print(task.output, file=sys.stderr)
+					print(task.output)
 
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
