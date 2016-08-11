@@ -91,7 +91,7 @@ class GitDependenciesRepository(GitRepository):
 				d.updateDependencies('*', recursive)
 
 			if self.config.has_option(p, 'command'):
-				print("Run command on dependency ({})".format(p), file=sys.stderr)
+				print("Run command on dependency ({})".format(p))
 				with ChangeDir(self.repositoryPath):
 					runCommand = self.config[p]['command']
 					if (runCommand.startswith("!sh ")):

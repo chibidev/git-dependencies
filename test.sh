@@ -521,7 +521,7 @@ function DependencyCommandRunnerTests_SimpleDep() {
 
   git dependencies command dep "!sh ln -s dep/README README_LINK"
   git dependencies update
-  expect [[ -L README_LINK ]]
+  expect [ -e README_LINK ]
 }
 
 function DependencyCommandRunnerTests_MultipleDep_ShellCmd() {
@@ -533,7 +533,7 @@ function DependencyCommandRunnerTests_MultipleDep_ShellCmd() {
 
   cd ../dependency
   expect git dependencies add "$subDependencyPath" sub master
-  git dependencies command sub "!sh pwd"
+  git dependencies command sub "!sh echo \"sub\" > sub.txt"
   git add .
   git commit -m "Add subDependency"
   local dependencyPath="$(pwd)"
@@ -541,14 +541,14 @@ function DependencyCommandRunnerTests_MultipleDep_ShellCmd() {
   cd ../project
   local projectPath="$(pwd)"
   expect git dependencies add "$dependencyPath" dep master
-  git dependencies command dep "!sh pwd"
+  git dependencies command dep "!sh echo \"dep\" > dep.txt"
   git add .
   git commit -m 'Adding dependency'
 
-  git dependencies update -r > update.log
+  git dependencies update -r
 
-  expect [[ "\"$(cat update.log | head -3 | tail -1)\"" == *"\"$projectPath/dep\"" ]]
-  expect [[ "\"$(cat update.log | head -4 | tail -1)\"" == *"\"$projectPath\"" ]]
+  expect [[ -f dep.txt ]]
+  expect [[ -f ./dep/sub.txt ]]
 }
 
 function DependencyCommandRunnerTests_MultipleDep_GitTask() {
@@ -572,7 +572,7 @@ function DependencyCommandRunnerTests_MultipleDep_GitTask() {
   usernameEmail="$(echo "$(git config user.name) <$(git config user.email)>")"
 
   expect git dependencies update -r > update.log
-  expect [[ "\"$(cat update.log | head -3 | tail -1)\"" == *"\"$usernameEmail\"" ]]
+  expect [[ "\"$(cat update.log | head -4 | tail -1)\"" == *"\"$usernameEmail\"" ]]
 }
 
 
