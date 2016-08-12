@@ -1,4 +1,6 @@
 import subprocess
+import os
+import sys
 
 class Task:
 	def __init__(self, command):
@@ -14,14 +16,14 @@ class Task:
 	def exitCode(self):
 		return self.rc
 
-
 class ShellTask(Task):
 	def __init__(self, command):
 		super().__init__(command = command)
-
-	def run(self, arguments = []):
 		self.output = ""
+		self.rc = 0
+
+	def run(self):
 		try:
-			self.output = subprocess.check_output([self.command] + arguments, close_fds=True, shell=True).decode("utf-8").strip()
+			self.output = subprocess.check_output(self.command, shell=True).decode("utf-8").strip()
 		except subprocess.CalledProcessError as exp:
 			self.rc = exp.returncode
