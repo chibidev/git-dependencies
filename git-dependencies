@@ -22,10 +22,12 @@ def call_command(args):
 	elif (args.command == 'freeze'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
+		repo.ensureNoSymlinkExistsInDependencySubtree(path = args.arg0, recursive = args.recursive)
 		repo.freezeDependency(path = args.arg0, recursive = args.recursive)
 	elif (args.command == 'unfreeze'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
+		repo.ensureNoSymlinkExistsInDependencySubtree(path = args.arg0, recursive = args.recursive)
 		repo.unfreezeDependency(path = args.arg0, recursive = args.recursive)
 	elif (args.command == 'dump'):
 		if (args.arg0 == ''):
