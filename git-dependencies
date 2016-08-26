@@ -1,12 +1,23 @@
-#!/usr/bin/env python3.4 -u
+#!/usr/bin/env python3
 
 import argparse
 import subprocess
 import sys
 import codecs
-from git.repositories import GitDependenciesRepository
+import os
 
-sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+from git.dependencies import GitDependenciesRepository
+
+class Unbuffered(object):
+	def __init__(self, stream):
+		self.stream = stream
+	def write(self, data):
+		self.stream.write(data)
+		self.stream.flush()
+	def __getattr__(self, attr):
+		return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(sys.stdout)
 sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
 
 def call_command(args):
@@ -37,6 +48,8 @@ def call_command(args):
 		repo.foreachDependency(args.arg0, args.recursive)
 	elif (args.command == 'set'):
 		repo.setDependency(path = args.arg0, ref = args.arg1)
+	elif (args.command == 'command'):
+		repo.command(path = args.arg0, command = args.arg1)
 
 	#for submodule in repo.submodules():
 	#	print(submodule)
@@ -44,7 +57,7 @@ def call_command(args):
 parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set'])
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'command'])
 parser.add_argument('arg0', nargs='?', default='')
 parser.add_argument('arg1', nargs='?', default='')
 parser.add_argument('arg2', nargs='?', default='')
