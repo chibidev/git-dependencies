@@ -122,7 +122,7 @@ function DependencySymlinkFreezeWithoutUpdateTest() {
 	git commit -m 'Adding dependency'
 	cd ..
 	cd project
-	
+
 	git dependencies freeze -r
 
     expect "[[ \"$(cat .gitdepends | grep 'freezed')\" == '' ]]"
@@ -136,7 +136,7 @@ function DependencySymlinkUnFreezeTest() {
 	git commit -m 'Adding dependency'
 	expect git dependencies freeze
 	cd ..
-	
+
 	cd project
 	expect git dependencies add "../dependency" dep master
 	expect git dependencies add "../dependency2" dep2 master
@@ -161,7 +161,7 @@ function DependencySymlinkSetTest() {
 	git add .
 	git commit -m 'Adding dependency'
 	cd ..
-	
+
 	cd project
 	expect git dependencies add "../dependency" dep master
 	expect git dependencies add "../dependency2" dep2 master
@@ -171,7 +171,7 @@ function DependencySymlinkSetTest() {
 	expect git dependencies update -r
 
 	expect "[[ -L "dep/dep" ]]"
-	
+
 	cd dep
 	git dependencies set dep almafa
 	expect "[[ \"$(cat .gitdepends | grep 'ref = almafa')\" == '' ]]"
@@ -705,7 +705,7 @@ function DependencyCommandRunnerTests_MultipleDep_GitTask() {
 
   cd ../dependency
   expect git dependencies add "$subDependencyPath" sub master
-  expect git dependencies command sub "\"--no-pager shortlog -sne\""
+  expect git dependencies command sub "\"rev-parse --abbrev-ref HEAD\""
   git add .
   git commit -m "Add subDependency"
 
@@ -714,10 +714,8 @@ function DependencyCommandRunnerTests_MultipleDep_GitTask() {
   git add .
   git commit -m 'Adding dependency'
 
-  usernameEmail="$(echo "$(git config user.name) <$(git config user.email)>")"
-
   expect git dependencies update -r > update.log
-  expect [[ "\"$(cat update.log | head -4 | tail -1)\"" == *"\"$usernameEmail\"" ]]
+  expect [[ "\"$(cat update.log | head -4 | tail -1)\"" == *"\"master\"" ]]
 }
 
 

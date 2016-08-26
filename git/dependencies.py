@@ -2,6 +2,7 @@ import configparser
 import os
 import os.path
 import sys
+import shutil
 
 from cmdtask import Task
 from cmdtask import ShellTask
@@ -104,20 +105,23 @@ class GitDependenciesRepository(GitRepository):
 				d.updateDependencies('*', recursive)
 
 		for p in sections:
+			dependencyPath = os.path.join(self.repositoryPath, p)
+			if(self.__isSymlink(dependencyPath)):
+				dependencyPath = self.__resolveSymlinkRealPath(dependencyPath)
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 			d.__loadDependenciesFile()
 			if self.config.has_option(p, 'command'):
-			  print("Run command on dependency ({})".format(p))
-			  with ChangeDir(self.repositoryPath):
-			    runCommand = self.config[p]['command']
-			    if (runCommand.startswith("!sh ")):
-			      task = ShellTask(runCommand[4:])
-			      task.run()
-			    else:
-			      task = Task('git')
-			      task.run(runCommand.split(' '))
-			  if (task.output != ''):
-			    print(task.output)
+				print("Run command on dependency ({})".format(p))
+				with ChangeDir(self.repositoryPath):
+					runCommand = self.config[p]['command']
+					if (runCommand.startswith("!sh ")):
+						task = ShellTask(runCommand[4:])
+						task.run()
+					else:
+						task = Task('git')
+						task.run(runCommand.split(' '))
+					if (task.output != ''):
+						print(task.output)
 
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
