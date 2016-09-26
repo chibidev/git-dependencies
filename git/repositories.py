@@ -193,7 +193,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path = '*', recursive = False):
+	def updateDependencies(self, path = '*', recursive = False, osFilter = []):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -202,6 +202,12 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [cleanPath]
 		for p in sections:
+
+			if (self.config.has_option(p, 'os')):
+				filteredOSTypes = [x.strip().lower() for x in self.config[p]['os'].split(',')]
+				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
+					continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 
 			if (not os.path.exists(dependencyPath) and self.__canCreateSymlink(dependencyPath, p)):
@@ -433,6 +439,19 @@ class GitDependenciesRepository(GitRepository):
 			if (recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 				d.ensureNoSymlinkExistsInDependencySubtree('*', recursive)
+
+	def setOSFilter(self, path, osFilter):
+		if (self.config == None):
+			return
+
+		p = self.__cleanPath(path)
+
+		if (len(osFilter) > 0):
+			self.config[p]['os'] = ','.join(osFilter)
+		else:
+			self.config.remove_option(p, 'os')
+
+		self.__saveDependenciesFile()
 
 	def __canCreateSymlink(self, path, section):
 		dependencyKey = self.__getDependencyStoreKey(section)
