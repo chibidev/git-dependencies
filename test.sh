@@ -624,7 +624,7 @@ function DependencyUpdateTestWithUTF8Character() {
 function DependencySetOSFilter() {
   cd project
   expect git dependencies add "../dependency" dep master
-  expect git dependencies os dep "win,mac"
+  expect git dependencies set-os-filter dep "win,mac"
   expect [[ -f .gitdepends ]]
   expect "[[ \"$(cat .gitdepends | grep 'os = win,mac')\" != '' ]]"
 }
@@ -632,13 +632,13 @@ function DependencySetOSFilter() {
 function DependencyUpdateWithOSFiltering1() {
   cd project
   expect git dependencies add "../dependency" dep master
-  expect git dependencies os dep "win"
+  expect git dependencies set-os-filter dep "win"
   git add .
   git commit -m 'Adding dependency'
   expect git dependencies add '../dependency2' dep2 master
   git add .
   git commit -m 'Adding dependency2'
-  expect git dependencies update -r --os=win
+  expect git dependencies update -r --os-filter=win
   expect [[ -d dep ]]
   expect [[ -d dep2 ]]
 }
@@ -646,14 +646,14 @@ function DependencyUpdateWithOSFiltering1() {
 function DependencyUpdateWithOSFiltering2() {
   cd project
   expect git dependencies add "../dependency" dep master
-  expect git dependencies os dep "win"
+  expect git dependencies set-os-filter dep "win"
   git add .
   git commit -m 'Adding dependency'
   expect git dependencies add '../dependency2' dep2 master
-  expect git dependencies os dep2 "mac"
+  expect git dependencies set-os-filter dep2 "mac"
   git add .
   git commit -m 'Adding dependency2'
-  expect git dependencies update -r --os=win
+  expect git dependencies update -r --os-filter=win
   expect [[ -d dep ]]
   expect [[ ! -d dep2 ]]
 }
@@ -661,14 +661,14 @@ function DependencyUpdateWithOSFiltering2() {
 function DependencyUpdateWithOSFiltering3() {
   cd project
   expect git dependencies add "../dependency" dep master
-  expect git dependencies os dep "win"
+  expect git dependencies set-os-filter dep "win"
   git add .
   git commit -m 'Adding dependency'
   expect git dependencies add '../dependency2' dep2 master
-  expect git dependencies os dep2 "mac"
+  expect git dependencies set-os-filter dep2 "mac"
   git add .
   git commit -m 'Adding dependency2'
-  expect git dependencies update -r --os=win,mac
+  expect git dependencies update -r --os-filter=win,mac
   expect [[ -d dep ]]
   expect [[ -d dep2 ]]
 }
@@ -676,11 +676,11 @@ function DependencyUpdateWithOSFiltering3() {
 function DependencyUpdateWithOSFiltering4() {
   cd project
   expect git dependencies add "../dependency" dep master
-  expect git dependencies os dep "win"
+  expect git dependencies set-os-filter dep "win"
   git add .
   git commit -m 'Adding dependency'
   expect git dependencies add '../dependency2' dep2 master
-  expect git dependencies os dep2 "mac"
+  expect git dependencies set-os-filter dep2 "mac"
   git add .
   git commit -m 'Adding dependency2'
   expect git dependencies update -r

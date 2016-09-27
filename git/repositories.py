@@ -6,6 +6,8 @@ import shutil
 
 from cmdtask import Task
 
+from git.os_types import generate_os_types
+
 GITDEPENDS_FILE = '.gitdepends'
 
 class GitRepository:
@@ -204,7 +206,7 @@ class GitDependenciesRepository(GitRepository):
 		for p in sections:
 
 			if (self.config.has_option(p, 'os')):
-				filteredOSTypes = [x.strip().lower() for x in self.config[p]['os'].split(',')]
+				filteredOSTypes = generate_os_types(self.config[p]['os'])
 				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
 					continue
 
