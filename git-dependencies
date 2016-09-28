@@ -1,17 +1,26 @@
-#!/usr/bin/env python3.4 -u
+#!/usr/bin/env python3
 
 import argparse
 import subprocess
 import sys
 import codecs
+import os
 import platform
 
-from git.repositories import GitDependenciesRepository
 from git.os_types import generate_os_types
+from git.dependencies import GitDependenciesRepository
 
-sys.stdout = codecs.getwriter('utf-8')(sys.stdout.buffer)
+class Unbuffered(object):
+	def __init__(self, stream):
+		self.stream = stream
+	def write(self, data):
+		self.stream.write(data.encode('utf-8').decode('utf-8'))
+		self.stream.flush()
+	def __getattr__(self, attr):
+		return getattr(self.stream, attr)
+
+sys.stdout = Unbuffered(codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict'))
 sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
-
 
 def call_command(args):
 	repo = GitDependenciesRepository()
@@ -43,6 +52,8 @@ def call_command(args):
 		repo.foreachDependency(args.arg0, args.recursive)
 	elif (args.command == 'set'):
 		repo.setDependency(path = args.arg0, ref = args.arg1)
+	elif (args.command == 'set-command'):
+		repo.command(path = args.arg0, command = args.arg1)
 	elif (args.command == 'set-os-filter'):
 		args.arg1 = [x.strip().lower() for x in args.arg1.split(',')] if args.arg1 != '' else []
 		repo.setOSFilter(path = args.arg0, osFilter = args.arg1)
@@ -54,7 +65,7 @@ parser = argparse.ArgumentParser(prog='git dependencies', description='Manage de
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
 parser.add_argument('-of', '--os-filter', action='store', default='', help='Filter dependencies by OS types e.g.: mac,ios,win. Default allows every OS types')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-os-filter'])
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-command', 'set-os-filter'])
 parser.add_argument('arg0', nargs='?', default='')
 parser.add_argument('arg1', nargs='?', default='')
 parser.add_argument('arg2', nargs='?', default='')

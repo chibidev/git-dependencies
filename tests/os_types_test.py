@@ -30,6 +30,7 @@ def test_os_type_generation(input, expected):
     ('Other', 'other'),
     ('other', 'other')
 ])
+
 def test_os_name_shorting(input, expected):
     result = short_os_type_name(input)
     assert result == expected
