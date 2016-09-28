@@ -5,6 +5,7 @@ import sys
 class Task:
 	def __init__(self, command):
 		self.command = command
+		self.rc = 0
 
 	def run(self, arguments = []):
 		proc = subprocess.Popen([self.command] + arguments, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
@@ -20,7 +21,6 @@ class ShellTask(Task):
 	def __init__(self, command):
 		super().__init__(command = command)
 		self.output = ""
-		self.rc = 0
 
 	def run(self):
 		try:

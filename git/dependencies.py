@@ -108,15 +108,14 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-				d.__loadDependenciesFile()
 				d.updateDependencies('*', recursive)
 
 		for p in sections:
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(self.__isSymlink(dependencyPath)):
 				dependencyPath = self.__resolveSymlinkRealPath(dependencyPath)
+
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-			d.__loadDependenciesFile()
 			if self.config.has_option(p, 'command'):
 				print("Run command on dependency ({})".format(p))
 				with ChangeDir(self.repositoryPath):
@@ -129,6 +128,8 @@ class GitDependenciesRepository(GitRepository):
 						task.run(runCommand.split(' '))
 					if (task.output != ''):
 						print(task.output)
+					if (task.exitCode() != 0):
+						sys.exit(task.exitCode())
 
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
