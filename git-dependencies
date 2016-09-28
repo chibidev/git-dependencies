@@ -5,7 +5,9 @@ import subprocess
 import sys
 import codecs
 import os
+import platform
 
+from git.os_types import generate_os_types
 from git.dependencies import GitDependenciesRepository
 
 class Unbuffered(object):
@@ -29,7 +31,9 @@ def call_command(args):
 	elif (args.command == 'update'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
-		repo.updateDependencies(args.arg0, args.recursive)
+		if (args.os_filter == ''):
+			args.os_filter = platform.system()
+		repo.updateDependencies(args.arg0, args.recursive, generate_os_types(args.os_filter))
 	elif (args.command == 'freeze'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
@@ -50,6 +54,9 @@ def call_command(args):
 		repo.setDependency(path = args.arg0, ref = args.arg1)
 	elif (args.command == 'command'):
 		repo.command(path = args.arg0, command = args.arg1)
+	elif (args.command == 'set-os-filter'):
+		args.arg1 = [x.strip().lower() for x in args.arg1.split(',')] if args.arg1 != '' else []
+		repo.setOSFilter(path = args.arg0, osFilter = args.arg1)
 
 	#for submodule in repo.submodules():
 	#	print(submodule)
@@ -57,7 +64,8 @@ def call_command(args):
 parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
 parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'command'])
+parser.add_argument('-of', '--os-filter', action='store', default='', help='Filter dependencies by OS types e.g.: mac,ios,win. Default allows every OS types')
+parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'command', 'set-os-filter'])
 parser.add_argument('arg0', nargs='?', default='')
 parser.add_argument('arg1', nargs='?', default='')
 parser.add_argument('arg2', nargs='?', default='')
