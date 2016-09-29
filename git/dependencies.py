@@ -2,12 +2,14 @@ import configparser
 import os
 import os.path
 import sys
+import shutil
 
 from cmdtask import Task
 from cmdtask import ShellTask
 
 from git.repositories import GitRepository
 from git.utilities import ChangeDir
+from git.os_types import generate_os_types
 
 GITDEPENDS_FILE = '.gitdepends'
 
@@ -50,7 +52,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path = '*', recursive = False):
+	def updateDependencies(self, path = '*', recursive = False, osFilter = []):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -59,6 +61,12 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [cleanPath]
 		for p in sections:
+
+			if (self.config.has_option(p, 'os')):
+				filteredOSTypes = generate_os_types(self.config[p]['os'])
+				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
+					continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 
 			if (not os.path.exists(dependencyPath) and self.__canCreateSymlink(dependencyPath, p)):
@@ -100,24 +108,28 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-				d.__loadDependenciesFile()
 				d.updateDependencies('*', recursive)
 
 		for p in sections:
+			dependencyPath = os.path.join(self.repositoryPath, p)
+			if(self.__isSymlink(dependencyPath)):
+				dependencyPath = self.__resolveSymlinkRealPath(dependencyPath)
+
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-			d.__loadDependenciesFile()
 			if self.config.has_option(p, 'command'):
-			  print("Run command on dependency ({})".format(p))
-			  with ChangeDir(self.repositoryPath):
-			    runCommand = self.config[p]['command']
-			    if (runCommand.startswith("!sh ")):
-			      task = ShellTask(runCommand[4:])
-			      task.run()
-			    else:
-			      task = Task('git')
-			      task.run(runCommand.split(' '))
-			  if (task.output != ''):
-			    print(task.output)
+				print("Run command on dependency ({})".format(p))
+				with ChangeDir(self.repositoryPath):
+					runCommand = self.config[p]['command']
+					if (runCommand.startswith("!sh ")):
+						task = ShellTask(runCommand[4:])
+						task.run()
+					else:
+						task = Task('git')
+						task.run(runCommand.split(' '))
+					if (task.output != ''):
+						print(task.output)
+					if (task.exitCode() != 0):
+						sys.exit(task.exitCode())
 
 	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
 		if (self.config == None):
@@ -319,6 +331,16 @@ class GitDependenciesRepository(GitRepository):
 			if (recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 				d.ensureNoSymlinkExistsInDependencySubtree('*', recursive)
+
+	def setOSFilter(self, path, osFilter):
+		if (self.config == None):
+			return
+		p = self.__cleanPath(path)
+		if (len(osFilter) > 0):
+			self.config[p]['os'] = ','.join(osFilter)
+		else:
+			self.config.remove_option(p, 'os')
+		self.__saveDependenciesFile()
 
 	def __canCreateSymlink(self, path, section):
 		dependencyKey = self.__getDependencyStoreKey(section)
