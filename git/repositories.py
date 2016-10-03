@@ -2,14 +2,15 @@ import configparser
 import os
 import os.path
 import sys
+import shutil
 
 from cmdtask import Task
 
 class GitRepository:
 	def __init__(self, url = '', path = '.'):
 		self.repositoryPath = path
-		self.gitPath = None;
-		self.remoteURL = url;
+		self.gitPath = None
+		self.remoteURL = url
 
 		if (os.path.exists(self.repositoryPath)):
 			self.__findGitRoot()
@@ -63,9 +64,9 @@ class GitRepository:
 		logArgs += ['--color=always']
 		logTask = self._runGitTask(logArgs)
 		if (logTask.output != ''):
-			print ('Commits integrated into ' + self.repositoryPath + ':')
+			print('Commits integrated into ' + self.repositoryPath + ':')
 			for line in iter(logTask.output.splitlines()):
-				print ("\t" + line)
+				print("\t" + line)
 		self._runGitTask(['rebase', '--autostash']).output
 
 	def updateSubmodules(self, recursive):
@@ -83,7 +84,7 @@ class GitRepository:
 		return self.revParse('HEAD')
 
 	def commit(self, message, files = []):
-		arguments = ['commit', '-m', message, '--'] + files;
+		arguments = ['commit', '-m', message, '--'] + files
 		self._runGitTask(arguments).output
 
 	def revParse(self, rev, upstream = False, abbreviate = False):
@@ -121,7 +122,8 @@ class GitRepository:
 		else:
 			os.chdir(self.repositoryPath)
 
-		# print('zserhardt@zserhardt-iMac:' + os.getcwd() + '$ git ' + ' '.join(arguments))
+		# print('zserhardt@zserhardt-iMac:' + os.getcwd() + '$ git ' + '
+		# '.join(arguments))
 
 		task = Task('git').run(arguments)
 		if (task.exitCode() != 0 and exitOnError):
@@ -141,7 +143,7 @@ class GitRepository:
 
 	def __findGitDirectory(self):
 		if (not os.path.exists(self.repositoryPath)):
-			return;
+			return
 
 		wd = os.getcwd()
 		os.chdir(self.repositoryPath)
