@@ -61,7 +61,7 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			sections = [cleanPath]
 		for p in sections:
-
+			# Continue with the next section, OS is filtered
 			if (self.config.has_option(p, 'os')):
 				filteredOSTypes = generate_os_types(self.config[p]['os'])
 				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
@@ -79,7 +79,7 @@ class GitDependenciesRepository(GitRepository):
 				self.__removeSymlink(dependencyPath)
 
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-			if (not os.path.exists(dependencyPath)):
+			if (not os.path.exists(dependencyPath) or not d.isValidRepository()):
 				print(dependencyPath + ' was not found, cloning into dependency...')
 				if (self.config.has_option(p, 'freezed')):
 					d.clone(self.config[p]['freezed'])
@@ -105,12 +105,24 @@ class GitDependenciesRepository(GitRepository):
 				d.updateSubmodules(recursive)
 
 		for p in sections:
+			# Continue with the next section, OS is filtered
+			if (self.config.has_option(p, 'os')):
+				filteredOSTypes = generate_os_types(self.config[p]['os'])
+				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
+					continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 				d.updateDependencies('*', recursive)
 
 		for p in sections:
+			# Continue with the next section, OS is filtered
+			if (self.config.has_option(p, 'os')):
+				filteredOSTypes = generate_os_types(self.config[p]['os'])
+				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
+					continue
+
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(self.__isSymlink(dependencyPath)):
 				dependencyPath = self.__resolveSymlinkRealPath(dependencyPath)

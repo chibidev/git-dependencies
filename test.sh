@@ -27,6 +27,7 @@ function create_branch() {
 }
 
 function setup() {
+    create_repo dependency3 > /dev/null
     create_repo dependency2 > /dev/null
     create_repo dependency > /dev/null
     create_repo project > /dev/null
@@ -849,6 +850,9 @@ function DependencyUpdateWithOSFiltering4() {
   expect git dependencies set-os-filter dep2 "mac"
   git add .
   git commit -m 'Adding dependency2'
+  expect git dependencies add '../dependency3' dep3 master
+  git add .
+  git commit -m 'Adding dependency3'
   expect git dependencies update -r
 
   local system_name=$(uname | tr '[:upper:]' '[:lower:]')
@@ -856,10 +860,30 @@ function DependencyUpdateWithOSFiltering4() {
   if [[ "$system_name" == "darwin" ]]; then
     expect [[ ! -d dep ]]
     expect [[ -d dep2 ]]
+    expect [[ -d dep3 ]]
   elif [[ "$system_name" == "mingw"* ]]; then
     expect [[ -d dep ]]
     expect [[ ! -d dep2 ]]
+    expect [[ -d dep3 ]]
   fi
+}
+
+function DependencyUpdate_FolderIsExist() {
+  cd dependency
+  echo "Hello" > sample.txt
+  git add .
+  git commit -m "Add sample.txt"
+  cd ../project
+  mkdir dep
+  git add .
+  git commit -m 'add dep folder'
+  expect git dependencies add "../dependency" dep master
+  git add .
+  git commit -m 'Adding dependency'
+
+  expect git dependencies update -r
+
+  expect [[ -f dep/sample.txt ]]
 }
 
 # TODO

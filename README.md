@@ -35,7 +35,7 @@ A git extension for managing dependencies that come from git repositories
   ```
 
 
-* `unfreeze` unfreeze dependency - follow a specific branch HEAD again
+* `unfreeze [path]` unfreeze dependency - follow a specific branch HEAD again
   * **path**: path of dependency. It is an optional parameter, its default value is ***** which means unfreeze every dependencies.
   ```bash
   git dependencies unfreeze dep/hello
@@ -64,20 +64,31 @@ A git extension for managing dependencies that come from git repositories
   ```
 
 
-* `command` set a command for a dependency which will run after if that dependency has been updated.
+* `set-command [command]` set a command for a dependency which will run after if that dependency has been updated.
   * **command**: git or shell command
   ```bash
   # run hello.py
-  git dependencies command dep/hello "!sh python3 hello.py"
+  git dependencies set-command dep/hello "!sh python3 hello.py"
   # run git command
-  git dependencies command dep/hello "rev-parse HEAD"
+  git dependencies set-command dep/hello "rev-parse HEAD"
   ```
 
+* `set-os-filter [types]` set OS filter for a dependency.
+  * **types**: e.g. mac,win,ios,android
+  ```bash
+  # run hello.py
+  git dependencies set-os-filter dep/hello mac,win
+  ```
 
 #### Other flags
 
 * `-r` or `--recursive`: use it if you want to run command on dependencies of dependency
   * **commands** : `update`, `freeze`, `unfreeze`, `dump`, `foreach`
 
+
 * `-d` or `--dump-header`: dump revision informations as preprocessor macros
   * **commands** : `dump`
+
+
+* `-of` or `--os-filter`: filter dependencies by OS type. Default value is current OS type.
+  * **commands** : `update`
