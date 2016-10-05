@@ -1,3 +1,4 @@
+import platform
 
 def generate_os_types(os_str):
     result = [x.strip().lower() for x in os_str.split(',')] if os_str != '' else []
@@ -11,3 +12,9 @@ def short_os_type_name(os_type):
         return 'mac'
     else:
         return os_type.lower()
+
+def isWindows():
+    return platform.system().lower() == "windows"
+
+def isMac():
+    return platform.system().lower() == "darwin"
