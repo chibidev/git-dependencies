@@ -3,8 +3,10 @@ import os
 import os.path
 import sys
 import shutil
+import platform
 
 from cmdtask import Task
+from git.os_types import isWindows
 
 class GitRepository:
 	def __init__(self, url = '', path = '.'):
@@ -17,14 +19,15 @@ class GitRepository:
 			self.__findGitDirectory()
 
 	def _shouldUsePools(self):
-		task = Task('which').run(['git-pool'])
+		locationChecker = "which" if not isWindows() else "where"
+		task = Task(locationChecker).run(['git-pool'])
 		if (task.exitCode() != 0):
 			return False
 		else:
 			return True
 
 	def clone(self, branch = None):
-		if (os.path.exists(self.repositoryPath)):
+		if (os.path.exists(self.repositoryPath) and self.isValidRepository()):
 			return
 		arguments = []
 		if (self._shouldUsePools()):
@@ -122,9 +125,6 @@ class GitRepository:
 		else:
 			os.chdir(self.repositoryPath)
 
-		# print('zserhardt@zserhardt-iMac:' + os.getcwd() + '$ git ' + '
-		# '.join(arguments))
-
 		task = Task('git').run(arguments)
 		if (task.exitCode() != 0 and exitOnError):
 			print(task.output, file=sys.stderr)
@@ -149,5 +149,11 @@ class GitRepository:
 		os.chdir(self.repositoryPath)
 		task = self._runGitTask(['rev-parse', '--git-dir'])
 		if (task.exitCode() == 0):
-			self.gitPath = os.path.abspath(task.output)
+			obtainedGitDirectory = os.path.abspath(task.output)
+			gitDirectoryFromRepoPath = os.path.abspath(self.repositoryPath + '/.git')
+			if (obtainedGitDirectory == gitDirectoryFromRepoPath):
+				self.gitPath = obtainedGitDirectory
 		os.chdir(wd)
+
+	def isValidRepository(self):
+		return self.gitPath != None
