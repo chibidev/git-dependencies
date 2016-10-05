@@ -868,7 +868,7 @@ function DependencyUpdateWithOSFiltering4() {
   fi
 }
 
-function DependencyUpdate_FolderIsExist() {
+function DependencyUpdate_FolderExists() {
   cd dependency
   echo "Hello" > sample.txt
   git add .
