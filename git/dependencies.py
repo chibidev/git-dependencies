@@ -155,7 +155,6 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if (self.__isSymlink(dependencyPath)):
 				realPath = self.__resolveSymlinkRealPath(dependencyPath)
-				print(p + " is a symlink to " + realPath + ", skipping from dump.")
 				continue
 
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
