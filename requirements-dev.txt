@@ -1,0 +1,15 @@
+#
+# install app requirements
+#
+
+-r requirements.txt
+
+#
+# install dev requirements
+#
+
+pytest>=2.7
+pytest-env
+pytest-mock
+pytest-env
+mock
