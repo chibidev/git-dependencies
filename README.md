@@ -76,7 +76,6 @@ A git extension for managing dependencies that come from git repositories
 * `set-os-filter [types]` set OS filter for a dependency.
   * **types**: e.g. mac,win,ios,android
   ```bash
-  # run hello.py
   git dependencies set-os-filter dep/hello mac,win
   ```
 
@@ -88,7 +87,29 @@ A git extension for managing dependencies that come from git repositories
 
 * `-d` or `--dump-header`: dump revision informations as preprocessor macros
   * **commands** : `dump`
+  ```bash
+  git dependencies dump  --dump-header
+  # Output:
+  # #define <sanitized path>_BRANCH "<branch>"
+  # #define <sanitized path>_REMOTE "<remote branch>"
+  # #define <sanitized path>_HASH "<sha1>"
+  ```
 
+* `--dump-custom [format]`: dump revision informations in a custom format
+  * **command**: `dump`
+  * **format**: _custom string with a following substitutions:_
+    * %dependencyName% = current dependency name
+    * %dependency% = current dependency path
+    * %branch% = current branch
+    * %remoteBranch% = current remote branch
+    * %sha1% = current sha1
+    * %sanitizedName% = current sanitized dependency name e.g. DEP
+    * %sanitizedPath% = current sanitized dependency path e.g. DEPENDENCIES_DEP
+
+    ```bash
+    git dependencies dump  --dump-custom "%dependencyName% - %dependency% - %branch% - %remoteBranch% - %sha1% - %sanitizedName% - %sanitizedPath%"
+    # Output: <dependencyName> - <dependency> - <branch> - <remoteBranch> - <sha1> - <sanitizedName> - <sanitizedPath>
+    ```
 
 * `-of` or `--os-filter`: filter dependencies by OS type. Default value is current OS type.
   * **commands** : `update`

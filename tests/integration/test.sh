@@ -33,15 +33,10 @@ function setup() {
   create_repo project > /dev/null
 }
 
-source $(dirname $0)/test-add.sh
-source $(dirname $0)/test-command.sh
-source $(dirname $0)/test-dump.sh
-source $(dirname $0)/test-foreach.sh
-source $(dirname $0)/test-freeze.sh
-source $(dirname $0)/test-os-filter.sh
-source $(dirname $0)/test-set.sh
-source $(dirname $0)/test-symlink.sh
-source $(dirname $0)/test-update.sh
+# parse and source test files
+for test_file in $(ls $(dirname $0) | grep "test-.*.sh$"); do
+  source "$(dirname $0)/$test_file"
+done
 
 # TODO
 # 1. test submodules
@@ -50,7 +45,7 @@ source $(dirname $0)/test-update.sh
 # 4. test DependencySet with commit hash
 
 pushd $(dirname $0) > /dev/null
-SCRIPTPATH=$(pwd)/../..
+SCRIPTPATH=$(dirname $0)/../..
 popd > /dev/null
 
 export PATH=$SCRIPTPATH:$PATH

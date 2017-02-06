@@ -88,8 +88,6 @@ function DependencyCommandRunnerTests_MultipleDep_ShellCmdExitWithNonZero() {
   echo "} " >> sample.sh
   echo "a" >> sample.sh
 
-  cp sample.sh ~/Desktop/sample.sh
-
   git add .
   git commit -m "Add sample.sh"
 
@@ -123,8 +121,6 @@ function DependencyCommandRunnerTests_ShellCmdExitWithNonZero() {
   echo "return 42" >> sample.sh
   echo "} " >> sample.sh
   echo "a" >> sample.sh
-
-  cp sample.sh ~/Desktop/sample.sh
 
   git add .
   git commit -m "Add sample.sh"
