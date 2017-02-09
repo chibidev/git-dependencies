@@ -5,7 +5,7 @@ import sys
 import shutil
 import platform
 
-from cmdtask import Task
+from utils.cmdtask import Task
 from git.os_types import isWindows
 
 class GitRepository:
