@@ -8,19 +8,9 @@ import os
 import platform
 
 from git.os_types import generate_os_types
+from git.dump import DumpType
 from git.dependencies import GitDependenciesRepository
-
-class Unbuffered(object):
-	def __init__(self, stream):
-		self.stream = stream
-	def write(self, data):
-		self.stream.write(data.encode('utf-8').decode('utf-8'))
-		self.stream.flush()
-	def __getattr__(self, attr):
-		return getattr(self.stream, attr)
-
-sys.stdout = Unbuffered(codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict'))
-sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+from utils.unbuffered import Unbuffered
 
 def call_command(args):
 	repo = GitDependenciesRepository()
@@ -47,7 +37,16 @@ def call_command(args):
 	elif (args.command == 'dump'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
-		repo.dumpDependency(args.arg0, args.recursive, args.dump_header)
+
+		if (args.dump_custom):
+			dump_type = DumpType.Custom
+		elif (args.dump_header):
+			dump_type = DumpType.Header
+		else:
+			dump_type = DumpType.Default
+
+		customString = args.dump_custom if dump_type == DumpType.Custom else ''
+		repo.dumpDependency(args.arg0, args.recursive, dump_type, customString)
 	elif (args.command == 'foreach'):
 		repo.foreachDependency(args.arg0, args.recursive)
 	elif (args.command == 'set'):
@@ -58,17 +57,47 @@ def call_command(args):
 		args.arg1 = [x.strip().lower() for x in args.arg1.split(',')] if args.arg1 != '' else []
 		repo.setOSFilter(path = args.arg0, osFilter = args.arg1)
 
-	#for submodule in repo.submodules():
-	#	print(submodule)
+def create_parser():
+	parser = argparse.ArgumentParser(prog='git dependencies',
+									 description='Manage dependencies in git repositories',
+									 formatter_class=argparse.RawTextHelpFormatter)
+	parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 
-parser = argparse.ArgumentParser(prog='git dependencies', description='Manage dependencies in git repositories')
-parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
-parser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
-parser.add_argument('-of', '--os-filter', action='store', default='', help='Filter dependencies by OS types e.g.: mac,ios,win. Default allows every OS types')
-parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-command', 'set-os-filter'])
-parser.add_argument('arg0', nargs='?', default='')
-parser.add_argument('arg1', nargs='?', default='')
-parser.add_argument('arg2', nargs='?', default='')
+	# dump parser
+	dumpParser = parser.add_mutually_exclusive_group(required=False)
+	dumpParser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
+	dumpCustomeHelp = """dump revision informations in a custom format
+		default:
+			`Dependency <dependency> following <branch> (tracking: <remote branch>) is now at rev <sha1>`
+		header:
+			#define <sanitized path>_BRANCH "<branch>"
+			#define <sanitized path>_REMOTE "<remote branch>"
+			#define <sanitized path>_HASH "<sha1>"
+		custom: custom string with a following substitutions:
+			%%dependencyName%% = current dependency name
+			%%dependency%% = current dependency path
+			%%branch%% = current branch
+			%%remoteBranch%% = current remote branch
+			%%sha1%% = current sha1
+			%%sanitizedName%% = current sanitized dependency name e.g. DEP
+			%%sanitizedPath%% = current sanitized dependency path e.g. DEPENDENCIES_DEP
+	"""
+	dumpParser.add_argument('--dump-custom', action='store', default='', help=dumpCustomeHelp)
 
-args = parser.parse_args()
-call_command(args)
+	#other parser aguments
+	parser.add_argument('-of', '--os-filter', action='store', default='', help='Filter dependencies by OS types e.g.: mac,ios,win. Default allows every OS types')
+	parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-command', 'set-os-filter'])
+	parser.add_argument('arg0', nargs='?', default='')
+	parser.add_argument('arg1', nargs='?', default='')
+	parser.add_argument('arg2', nargs='?', default='')
+	return parser
+
+def main():
+	sys.stdout = Unbuffered(codecs.getwriter('utf-8')(sys.stdout.buffer, 'strict'))
+	sys.stderr = codecs.getwriter('utf-8')(sys.stderr.buffer)
+	parser = create_parser()
+	args = parser.parse_args()
+	call_command(args)
+
+if __name__ == '__main__':
+	main()

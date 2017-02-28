@@ -4,12 +4,13 @@ import os.path
 import sys
 import shutil
 
-from cmdtask import Task
-from cmdtask import ShellTask
+from utils.cmdtask import Task
+from utils.cmdtask import ShellTask
 
 from git.repositories import GitRepository
-from git.utilities import ChangeDir
+from utils.changedir import ChangeDir
 from git.os_types import generate_os_types
+from git.dump import DumpType
 
 GITDEPENDS_FILE = '.gitdepends'
 
@@ -143,7 +144,7 @@ class GitDependenciesRepository(GitRepository):
 					if (task.exitCode() != 0):
 						sys.exit(task.exitCode())
 
-	def dumpDependency(self, path = '*', recursive = False, dumpHeader = False):
+	def dumpDependency(self, path = '*', recursive = False, dump_type = DumpType.Default, customString = ""):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -166,16 +167,30 @@ class GitDependenciesRepository(GitRepository):
 				upstream = d.currentBranch(upstream = True)
 			hash = d.currentSha()
 
-			if (not dumpHeader):
+			if (dump_type == DumpType.Default):
 				print('Dependency ' + p + ' following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
-			else:
+			elif (dump_type == DumpType.Header):
 				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
 				print('#define ' + sanitizedPath + '_BRANCH "' + branch + '"')
 				print('#define ' + sanitizedPath + '_REMOTE "' + upstream + '"')
 				print('#define ' + sanitizedPath + '_HASH "' + hash + '"')
 				print('')
+			elif (dump_type == DumpType.Custom):
+				dependencyName = p.split('/')[-1]
+				log = customString
+				log = log.replace("%dependencyName%", dependencyName)
+				log = log.replace("%dependency%", p)
+				log = log.replace("%branch%", branch)
+				log = log.replace("%remoteBranch%", upstream)
+				log = log.replace("%sha1%", hash)
+				sanitizedName = dependencyName.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
+				log = log.replace("%sanitizedName%", sanitizedName)
+				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
+				log = log.replace("%sanitizedPath%", sanitizedPath)
+				print(log)
+
 			if (recursive):
-				d.dumpDependency('*', recursive, dumpHeader)
+				d.dumpDependency('*', recursive, dump_type, customString)
 
 	def setDependency(self, path, ref):
 		if (self.config == None):

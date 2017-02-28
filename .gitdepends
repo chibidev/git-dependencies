@@ -1,4 +1,3 @@
-[shtest]
+[tests/integration/shtest]
 url = https://github.com/chibidev/shtest.git
 ref = master
-
