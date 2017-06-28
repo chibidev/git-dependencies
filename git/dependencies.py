@@ -53,7 +53,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path = '*', recursive = False, osFilter = []):
+	def updateDependencies(self, path = '*', recursive = False, osFilter = [], overrides = None, override_all = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -67,6 +67,13 @@ class GitDependenciesRepository(GitRepository):
 				filteredOSTypes = generate_os_types(self.config[p]['os'])
 				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
 					continue
+
+			# If overrides are used, get the override. Fail for missing override if override_all is set.
+			overrideRef = None
+			if(overrides):
+				overrideRef = overrides.get(self.config[p]['url'])
+				if(override_all and not overrideRef):
+					sys.exit('overrides incomplete, missing: {}'.format(self.config[p]['url']))
 
 			dependencyPath = os.path.join(self.repositoryPath, p)
 
@@ -82,7 +89,10 @@ class GitDependenciesRepository(GitRepository):
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 			if (not os.path.exists(dependencyPath) or not d.isValidRepository()):
 				print(dependencyPath + ' was not found, cloning into dependency...')
-				if (self.config.has_option(p, 'freezed')):
+				if (overrideRef):
+					d.clone(branch = None)
+					d.checkout(overrideRef)
+				elif (self.config.has_option(p, 'freezed')):
 					d.clone(self.config[p]['freezed'])
 					d.checkout(self.config[p]['ref'])
 				else:
@@ -96,7 +106,10 @@ class GitDependenciesRepository(GitRepository):
 						sys.exit(task.exitCode())
 
 				print('Updating ' + dependencyPath)
-				if (self.config.has_option(p, 'freezed')):
+				if (overrideRef):
+					d.fetch('origin', overrideRef)
+					d.checkout(overrideRef)
+				elif (self.config.has_option(p, 'freezed')):
 					d.fetch('origin', self.config[p]['freezed'])
 					d.checkout(self.config[p]['ref'])
 				else:
@@ -104,6 +117,7 @@ class GitDependenciesRepository(GitRepository):
 					d.checkout(self.config[p]['ref'])
 					d.integrateChanges(self.config[p]['ref'])
 				d.updateSubmodules(recursive)
+
 
 		for p in sections:
 			# Continue with the next section, OS is filtered
@@ -115,7 +129,7 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-				d.updateDependencies('*', recursive)
+				d.updateDependencies('*', recursive, [], overrides, override_all)
 
 		for p in sections:
 			# Continue with the next section, OS is filtered
@@ -367,6 +381,34 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			self.config.remove_option(p, 'os')
 		self.__saveDependenciesFile()
+
+	def dumpDeps(self, depStore, path = '*', recursive = False):
+		if (self.config == None):
+			return
+		cleanPath = self.__cleanPath(path)
+		if (cleanPath == '*'):
+			sections = self.config.sections()
+		else:
+			sections = [cleanPath]
+		for p in sections:
+			dependencyPath = os.path.join(self.repositoryPath, p)
+			if (self.__isSymlink(dependencyPath)):
+				realPath = self.__resolveSymlinkRealPath(dependencyPath)
+				continue
+
+			url = self.config[p]['url']
+			existingHash = depStore.get(url)
+			d = GitDependenciesRepository(url, dependencyPath)
+			hash = d.currentSha()
+
+			if(existingHash is not None and hash != existingHash):
+				# Same repo checked out at a different commits? Something is wrong here, bail out.
+				sys.exit('Inconsistent dependency tree (repo {})'.format(url))
+
+			depStore[url] = hash
+
+			if (recursive):
+				d.dumpDeps(depStore, '*', recursive)
 
 	def __canCreateSymlink(self, path, section):
 		dependencyKey = self.__getDependencyStoreKey(section)
