@@ -158,7 +158,7 @@ class GitDependenciesRepository(GitRepository):
 					if (task.exitCode() != 0):
 						sys.exit(task.exitCode())
 
-	def dumpDependency(self, path = '*', recursive = False, dump_type = DumpType.Default, customString = ""):
+	def walkDependency(self, visitor, path = '*', recursive = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -173,38 +173,10 @@ class GitDependenciesRepository(GitRepository):
 				continue
 
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-			if (self.config.has_option(p, 'freezed')):
-				branch = self.config[p]['freezed']
-				upstream = d.revParse(self.config[p]['freezed'], upstream = True, abbreviate = True)
-			else:
-				branch = d.currentBranch(upstream = False)
-				upstream = d.currentBranch(upstream = True)
-			hash = d.currentSha()
-
-			if (dump_type == DumpType.Default):
-				print('Dependency ' + p + ' following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
-			elif (dump_type == DumpType.Header):
-				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				print('#define ' + sanitizedPath + '_BRANCH "' + branch + '"')
-				print('#define ' + sanitizedPath + '_REMOTE "' + upstream + '"')
-				print('#define ' + sanitizedPath + '_HASH "' + hash + '"')
-				print('')
-			elif (dump_type == DumpType.Custom):
-				dependencyName = p.split('/')[-1]
-				log = customString
-				log = log.replace("%dependencyName%", dependencyName)
-				log = log.replace("%dependency%", p)
-				log = log.replace("%branch%", branch)
-				log = log.replace("%remoteBranch%", upstream)
-				log = log.replace("%sha1%", hash)
-				sanitizedName = dependencyName.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				log = log.replace("%sanitizedName%", sanitizedName)
-				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				log = log.replace("%sanitizedPath%", sanitizedPath)
-				print(log)
+			visitor.visit(repo = self, section = p, dependency = d)
 
 			if (recursive):
-				d.dumpDependency('*', recursive, dump_type, customString)
+				d.walkDependency(visitor, '*', recursive)
 
 	def setDependency(self, path, ref):
 		if (self.config == None):
@@ -381,34 +353,6 @@ class GitDependenciesRepository(GitRepository):
 		else:
 			self.config.remove_option(p, 'os')
 		self.__saveDependenciesFile()
-
-	def dumpDeps(self, depStore, path = '*', recursive = False):
-		if (self.config == None):
-			return
-		cleanPath = self.__cleanPath(path)
-		if (cleanPath == '*'):
-			sections = self.config.sections()
-		else:
-			sections = [cleanPath]
-		for p in sections:
-			dependencyPath = os.path.join(self.repositoryPath, p)
-			if (self.__isSymlink(dependencyPath)):
-				realPath = self.__resolveSymlinkRealPath(dependencyPath)
-				continue
-
-			url = self.config[p]['url']
-			existingHash = depStore.get(url)
-			d = GitDependenciesRepository(url, dependencyPath)
-			hash = d.currentSha()
-
-			if(existingHash is not None and hash != existingHash):
-				# Same repo checked out at a different commits? Something is wrong here, bail out.
-				sys.exit('Inconsistent dependency tree (repo {})'.format(url))
-
-			depStore[url] = hash
-
-			if (recursive):
-				d.dumpDeps(depStore, '*', recursive)
 
 	def __canCreateSymlink(self, path, section):
 		dependencyKey = self.__getDependencyStoreKey(section)

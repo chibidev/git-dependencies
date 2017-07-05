@@ -9,7 +9,7 @@ import platform
 import json
 
 from git.os_types import generate_os_types
-from git.dump import DumpType
+from git.dump import DumpType, TextDump, OverrideDump
 from git.dependencies import GitDependenciesRepository
 from utils.unbuffered import Unbuffered
 
@@ -43,16 +43,17 @@ def call_command(args):
 	elif (args.command == 'dump'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
-
+		dump = None
 		if (args.dump_custom):
-			dump_type = DumpType.Custom
+			dump = TextDump(DumpType.Custom, args.dump_custom)
 		elif (args.dump_header):
-			dump_type = DumpType.Header
+			dump = TextDump(DumpType.Header)
+		elif (args.dump_overrides):
+			dump = OverrideDump()
 		else:
-			dump_type = DumpType.Default
-
-		customString = args.dump_custom if dump_type == DumpType.Custom else ''
-		repo.dumpDependency(args.arg0, args.recursive, dump_type, customString)
+			dump = TextDump(DumpType.Default)
+		repo.walkDependency(dump, args.arg0, args.recursive)
+		dump.finish()
 	elif (args.command == 'foreach'):
 		repo.foreachDependency(args.arg0, args.recursive)
 	elif (args.command == 'set'):
@@ -62,12 +63,6 @@ def call_command(args):
 	elif (args.command == 'set-os-filter'):
 		args.arg1 = [x.strip().lower() for x in args.arg1.split(',')] if args.arg1 != '' else []
 		repo.setOSFilter(path = args.arg0, osFilter = args.arg1)
-	elif (args.command == 'dump-deps'):
-		if (args.arg0 == ''):
-			args.arg0 = '*'
-		depStore = {}
-		repo.dumpDeps(path = args.arg0, recursive = args.recursive, depStore = depStore)
-		print(json.dumps(depStore))
 
 def create_parser():
 	parser = argparse.ArgumentParser(prog='git dependencies',
@@ -80,6 +75,7 @@ def create_parser():
 	# dump parser
 	dumpParser = parser.add_mutually_exclusive_group(required=False)
 	dumpParser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
+	dumpParser.add_argument('-do', '--dump-overrides', action='store_true', help='dump revision informations as override file')
 	dumpCustomeHelp = """dump revision informations in a custom format
 		default:
 			`Dependency <dependency> following <branch> (tracking: <remote branch>) is now at rev <sha1>`
@@ -95,12 +91,14 @@ def create_parser():
 			%%sha1%% = current sha1
 			%%sanitizedName%% = current sanitized dependency name e.g. DEP
 			%%sanitizedPath%% = current sanitized dependency path e.g. DEPENDENCIES_DEP
+		overrides:
+			The result is in override file format.
 	"""
 	dumpParser.add_argument('--dump-custom', action='store', default='', help=dumpCustomeHelp)
 
 	#other parser aguments
 	parser.add_argument('-of', '--os-filter', action='store', default='', help='Filter dependencies by OS types e.g.: mac,ios,win. Default allows every OS types')
-	parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-command', 'set-os-filter', 'dump-deps'])
+	parser.add_argument('command', choices=['add', 'rm', 'remove', 'update', 'freeze', 'unfreeze', 'dump', 'foreach', 'set', 'set-command', 'set-os-filter'])
 	parser.add_argument('arg0', nargs='?', default='')
 	parser.add_argument('arg1', nargs='?', default='')
 	parser.add_argument('arg2', nargs='?', default='')
