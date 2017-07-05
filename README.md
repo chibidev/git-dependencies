@@ -48,15 +48,6 @@ A git extension for managing dependencies that come from git repositories
   ```
 
 
-* `dump-deps` write current dependencies to stdout, in override file format. See arguments `--override` and `override-all`.
-  ```bash
-  # Dump the current dependency tree to an override file
-  git dependencies dump-deps -r > snapshot
-  # Restore the dependency tree from override file
-  git dependencies update -r --overrides snapshot --override-all
-  ```
-
-
 * `foreach [command]` iterate over dependencies and run a specific command
   * **command**: git or shell command
   ```bash
