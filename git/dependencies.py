@@ -10,7 +10,6 @@ from utils.cmdtask import ShellTask
 from git.repositories import GitRepository
 from utils.changedir import ChangeDir
 from git.os_types import generate_os_types
-from git.dump import DumpType
 
 GITDEPENDS_FILE = '.gitdepends'
 

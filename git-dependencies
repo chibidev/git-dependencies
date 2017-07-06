@@ -9,7 +9,7 @@ import platform
 import json
 
 from git.os_types import generate_os_types
-from git.dump import DumpType, TextDump, OverrideDump
+from git.dump import DefaultDump, HeaderDump, CustomDump, OverrideDump
 from git.dependencies import GitDependenciesRepository
 from utils.unbuffered import Unbuffered
 
@@ -45,13 +45,13 @@ def call_command(args):
 			args.arg0 = '*'
 		dump = None
 		if (args.dump_custom):
-			dump = TextDump(DumpType.Custom, args.dump_custom)
+			dump = CustomDump(args.dump_custom)
 		elif (args.dump_header):
-			dump = TextDump(DumpType.Header)
+			dump = HeaderDump()
 		elif (args.dump_overrides):
 			dump = OverrideDump()
 		else:
-			dump = TextDump(DumpType.Default)
+			dump = DefaultDump()
 		repo.walkDependency(dump, args.arg0, args.recursive)
 		dump.finish()
 	elif (args.command == 'foreach'):
