@@ -117,16 +117,16 @@ A git extension for managing dependencies that come from git repositories
   # Dump the current dependency tree to an override file
   git dependencies dump -r --dump-overrides > snapshot
   # Restore the dependency tree from override file
-  git dependencies update -r --overrides snapshot --override-all
+  git dependencies update -r --overrides snapshot
   ```
 
 * `-of` or `--os-filter`: filter dependencies by OS type. Default value is current OS type.
   * **commands** : `update`
 
 
-* `-o` or `--overrides [filename]`: Override dependencies from the override file `filename`.
+* `-o` or `--overrides [filename]`: override dependencies from the override file `filename`. By default, the override must be complete - all dependencies must be overridden or the update fails. You can override this with the --allow-partial-override flag.
   * **commands** : `update`
 
 
-* `-oa` or `--override-all`: Enforce complete override. Fail if a dependency is not overriden by the override file.
+* `-ap` or `--allow_partial-overrides`: enables overriding dependencies selectively.
   * **commands** : `update --overrides`

@@ -52,7 +52,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path = '*', recursive = False, osFilter = [], overrides = None, override_all = False):
+	def updateDependencies(self, path = '*', recursive = False, osFilter = [], overrides = None, allow_partial_overrides = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -67,11 +67,11 @@ class GitDependenciesRepository(GitRepository):
 				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
 					continue
 
-			# If overrides are used, get the override. Fail for missing override if override_all is set.
+			# If overrides are used, get the override. Fail for missing override unless partial_overrides is set.
 			overrideRef = None
 			if(overrides):
 				overrideRef = overrides.get(self.config[p]['url'])
-				if(override_all and not overrideRef):
+				if(not allow_partial_overrides and not overrideRef):
 					sys.exit('overrides incomplete, missing: {}'.format(self.config[p]['url']))
 
 			dependencyPath = os.path.join(self.repositoryPath, p)
@@ -128,7 +128,7 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-				d.updateDependencies('*', recursive, [], overrides, override_all)
+				d.updateDependencies('*', recursive, [], overrides, allow_partial_overrides)
 
 		for p in sections:
 			# Continue with the next section, OS is filtered

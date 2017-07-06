@@ -29,7 +29,7 @@ def call_command(args):
 			with open(args.overrides) as overridesFile:
 				print('Using overrides file {}'.format(overridesFile.name))
 				overrides = json.load(overridesFile)
-		repo.updateDependencies(path = args.arg0, recursive = args.recursive, osFilter = generate_os_types(args.os_filter), overrides = overrides, override_all = args.override_all)
+		repo.updateDependencies(path = args.arg0, recursive = args.recursive, osFilter = generate_os_types(args.os_filter), overrides = overrides, allow_partial_overrides = args.allow_partial_overrides)
 	elif (args.command == 'freeze'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
@@ -70,7 +70,7 @@ def create_parser():
 									 formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
 	parser.add_argument('-o', '--overrides', help='override dependencies from file')
-	parser.add_argument('-oa', '--override-all', action='store_true', help='enforce complete override (fail if a dependency is not overridden)')
+	parser.add_argument('-ap', '--allow-partial-overrides', action='store_true', help='allow partial override')
 
 	# dump parser
 	dumpParser = parser.add_mutually_exclusive_group(required=False)

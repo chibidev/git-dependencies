@@ -120,7 +120,7 @@ function PartialOverrideTest() {
   echo "{\"../dependency\": \"$depHash\"}" | tee overrides.json
 
   # Clone with overrides - dependency should be at override version (hash)
-  expect git dependencies update --overrides overrides.json
+  expect git dependencies update --overrides overrides.json --allow-partial-overrides
   cd dep
   expect [[ $(git rev-parse HEAD) == "$depHash" ]]
   cd ../dep2
@@ -136,7 +136,7 @@ function PartialOverrideTest() {
 
   # Update with overrides - dependency should be at override version (hash)
   cd ..
-  expect git dependencies update --overrides overrides.json
+  expect git dependencies update --overrides overrides.json --allow-partial-overrides
   cd dep
   expect [[ $(git rev-parse HEAD) == "$depHash" ]]
   cd ../dep2
@@ -176,7 +176,7 @@ function RecursivePartialOverrideTest() {
   echo "{\"../dependency\": \"$depHash\"}" | tee overrides.json
 
   # Clone with overrides - dependency should be at override version (hash)
-  expect git dependencies update -r --overrides overrides.json
+  expect git dependencies update -r --overrides overrides.json --allow-partial-overrides
   cd dep
   expect [[ $(git rev-parse HEAD) == "$depHash" ]]
   cd dep2
@@ -192,7 +192,7 @@ function RecursivePartialOverrideTest() {
 
   # Update with overrides - dependency should be at override version (hash)
   cd ../..
-  expect git dependencies update -r --overrides overrides.json
+  expect git dependencies update -r --overrides overrides.json --allow-partial-overrides
   cd dep
   expect [[ $(git rev-parse HEAD) == "$depHash" ]]
   cd dep2
@@ -200,9 +200,9 @@ function RecursivePartialOverrideTest() {
 
 }
 
-function OverrideAllFailTest() {
-  # Test override-all failure. dep is overridden but dep2 is not.
-  # Partial override should fail.
+function PartialOverrideFailTest() {
+  # Test partial override failure. dep is overridden but dep2 is not.
+  # Partial override should fail (without the --allow-partial-overrides set).
   cd project
   expect git dependencies add "../dependency" dep master
   expect git dependencies add "../dependency2" dep2 master
@@ -232,7 +232,7 @@ function OverrideAllFailTest() {
   echo "{\"../dependency\": \"$depHash\"}" | tee overrides.json
 
   # Clone with overrides - incomplete overrides should fail
-  expect ! git dependencies update --overrides overrides.json --override-all
+  expect ! git dependencies update --overrides overrides.json
 
   # Revert to no overrides - dependency should be at HEAD (hash1)
   expect git dependencies update
@@ -243,13 +243,13 @@ function OverrideAllFailTest() {
 
   # Update with overrides - incomplete overrides should fail
   cd ..
-  expect ! git dependencies update --overrides overrides.json --override-all
+  expect ! git dependencies update --overrides overrides.json
 
 }
 
-function RecursiveOverrideAllFailTest() {
-  # Test override-all failure. dep is overridden but dep2 is not.
-  # Partial override should fail.
+function RecursivePartialOverrideFailTest() {
+  # Test partial override failure. dep is overridden but dep2 is not.
+  # Partial override should fail (without the --allow-partial-overrides set).
   cd project
   expect git dependencies add "../dependency" dep master
   git add .
@@ -280,7 +280,7 @@ function RecursiveOverrideAllFailTest() {
   echo "{\"../dependency\": \"$depHash\"}" | tee overrides.json
 
   # Clone with overrides - incomplete overrides should fail
-  expect ! git dependencies update -r --overrides overrides.json --override-all
+  expect ! git dependencies update -r --overrides overrides.json
 
   # Revert to no overrides - dependency should be at HEAD (hash1)
   expect git dependencies update -r
@@ -291,6 +291,6 @@ function RecursiveOverrideAllFailTest() {
 
   # Update with overrides - incomplete overrides should fail
   cd ../..
-  expect ! git dependencies update -r --overrides overrides.json --override-all
+  expect ! git dependencies update -r --overrides overrides.json
 
 }
