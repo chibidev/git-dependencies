@@ -124,7 +124,7 @@ A git extension for managing dependencies that come from git repositories
   * **commands** : `update`
 
 
-* `-o` or `--overrides [filename]`: override dependencies from the override file `filename`. By default, the override must be complete - all dependencies must be overridden or the update fails. You can override this with the --allow-partial-override flag.
+* `-o` or `--overrides <filename>`: override dependencies from the override file `filename`. By default, the override must be complete - all dependencies must be overridden or the update fails. You can override this with the `--allow-partial-override` flag.
   * **commands** : `update`
 
 
