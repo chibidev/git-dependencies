@@ -69,13 +69,13 @@ def create_parser():
 									 description='Manage dependencies in git repositories',
 									 formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
-	parser.add_argument('-o', '--overrides', help='override dependencies from file')
-	parser.add_argument('-ap', '--allow-partial-overrides', action='store_true', help='allow partial override')
+	parser.add_argument('--overrides', help='override dependencies from file')
+	parser.add_argument('--allow-partial-overrides', action='store_true', help='allow partial override')
 
 	# dump parser
 	dumpParser = parser.add_mutually_exclusive_group(required=False)
 	dumpParser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
-	dumpParser.add_argument('-do', '--dump-overrides', action='store_true', help='dump revision informations as override file')
+	dumpParser.add_argument('--dump-overrides', action='store_true', help='dump revision informations as override file')
 	dumpCustomeHelp = """dump revision informations in a custom format
 		default:
 			`Dependency <dependency> following <branch> (tracking: <remote branch>) is now at rev <sha1>`

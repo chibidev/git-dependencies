@@ -111,7 +111,7 @@ A git extension for managing dependencies that come from git repositories
     # Output: <dependencyName> - <dependency> - <branch> - <remoteBranch> - <sha1> - <sanitizedName> - <sanitizedPath>
     ```
 
-* `-do` or `--dump-overrides`: dump revision informations as override file
+* `--dump-overrides`: dump revision informations as override file
   * **commands** : `dump`
   ```bash
   # Dump the current dependency tree to an override file
@@ -124,9 +124,9 @@ A git extension for managing dependencies that come from git repositories
   * **commands** : `update`
 
 
-* `-o` or `--overrides <filename>`: override dependencies from the override file `filename`. By default, the override must be complete - all dependencies must be overridden or the update fails. You can override this with the `--allow-partial-override` flag.
+* `--overrides <filename>`: override dependencies from the override file `filename`. By default, the override must be complete - all dependencies must be overridden or the update fails. You can override this with the `--allow-partial-override` flag.
   * **commands** : `update`
 
 
-* `-ap` or `--allow_partial-overrides`: enables overriding dependencies selectively.
+* `--allow_partial-overrides`: enables overriding dependencies selectively.
   * **commands** : `update --overrides`
