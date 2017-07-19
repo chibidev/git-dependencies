@@ -6,9 +6,10 @@ import sys
 import codecs
 import os
 import platform
+import json
 
 from git.os_types import generate_os_types
-from git.dump import DumpType
+from git.dump import DefaultDump, HeaderDump, CustomDump, OverrideDump
 from git.dependencies import GitDependenciesRepository
 from utils.unbuffered import Unbuffered
 
@@ -23,7 +24,12 @@ def call_command(args):
 			args.arg0 = '*'
 		if (args.os_filter == ''):
 			args.os_filter = platform.system()
-		repo.updateDependencies(args.arg0, args.recursive, generate_os_types(args.os_filter))
+		overrides = None
+		if (args.overrides):
+			with open(args.overrides) as overridesFile:
+				print('Using overrides file {}'.format(overridesFile.name))
+				overrides = json.load(overridesFile)
+		repo.updateDependencies(path = args.arg0, recursive = args.recursive, osFilter = generate_os_types(args.os_filter), overrides = overrides, allow_partial_overrides = args.allow_partial_overrides)
 	elif (args.command == 'freeze'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
@@ -37,16 +43,17 @@ def call_command(args):
 	elif (args.command == 'dump'):
 		if (args.arg0 == ''):
 			args.arg0 = '*'
-
+		dump = None
 		if (args.dump_custom):
-			dump_type = DumpType.Custom
+			dump = CustomDump(args.dump_custom)
 		elif (args.dump_header):
-			dump_type = DumpType.Header
+			dump = HeaderDump()
+		elif (args.dump_overrides):
+			dump = OverrideDump()
 		else:
-			dump_type = DumpType.Default
-
-		customString = args.dump_custom if dump_type == DumpType.Custom else ''
-		repo.dumpDependency(args.arg0, args.recursive, dump_type, customString)
+			dump = DefaultDump()
+		repo.walkDependency(dump, args.arg0, args.recursive)
+		dump.finish()
 	elif (args.command == 'foreach'):
 		repo.foreachDependency(args.arg0, args.recursive)
 	elif (args.command == 'set'):
@@ -62,10 +69,13 @@ def create_parser():
 									 description='Manage dependencies in git repositories',
 									 formatter_class=argparse.RawTextHelpFormatter)
 	parser.add_argument('-r', '--recursive', action='store_true', help='recurse into dependencies')
+	parser.add_argument('--overrides', help='override dependencies from file')
+	parser.add_argument('--allow-partial-overrides', action='store_true', help='allow partial override')
 
 	# dump parser
 	dumpParser = parser.add_mutually_exclusive_group(required=False)
 	dumpParser.add_argument('-d', '--dump-header', action='store_true', help='dump revision informations as preprocessor macros')
+	dumpParser.add_argument('--dump-overrides', action='store_true', help='dump revision informations as override file')
 	dumpCustomeHelp = """dump revision informations in a custom format
 		default:
 			`Dependency <dependency> following <branch> (tracking: <remote branch>) is now at rev <sha1>`
@@ -81,6 +91,8 @@ def create_parser():
 			%%sha1%% = current sha1
 			%%sanitizedName%% = current sanitized dependency name e.g. DEP
 			%%sanitizedPath%% = current sanitized dependency path e.g. DEPENDENCIES_DEP
+		overrides:
+			The result is in override file format.
 	"""
 	dumpParser.add_argument('--dump-custom', action='store', default='', help=dumpCustomeHelp)
 

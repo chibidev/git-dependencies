@@ -10,7 +10,6 @@ from utils.cmdtask import ShellTask
 from git.repositories import GitRepository
 from utils.changedir import ChangeDir
 from git.os_types import generate_os_types
-from git.dump import DumpType
 
 GITDEPENDS_FILE = '.gitdepends'
 
@@ -53,7 +52,7 @@ class GitDependenciesRepository(GitRepository):
 	def removeDependency(self, path):
 		self.config.remove_section(path)
 
-	def updateDependencies(self, path = '*', recursive = False, osFilter = []):
+	def updateDependencies(self, path = '*', recursive = False, osFilter = [], overrides = None, allow_partial_overrides = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -67,6 +66,13 @@ class GitDependenciesRepository(GitRepository):
 				filteredOSTypes = generate_os_types(self.config[p]['os'])
 				if (len(osFilter) > 0 and len(set(filteredOSTypes).intersection(osFilter)) == 0):
 					continue
+
+			# If overrides are used, get the override. Fail for missing override unless partial_overrides is set.
+			overrideRef = None
+			if(overrides):
+				overrideRef = overrides.get(self.config[p]['url'])
+				if(not allow_partial_overrides and not overrideRef):
+					sys.exit('overrides incomplete, missing: {}'.format(self.config[p]['url']))
 
 			dependencyPath = os.path.join(self.repositoryPath, p)
 
@@ -82,7 +88,10 @@ class GitDependenciesRepository(GitRepository):
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
 			if (not os.path.exists(dependencyPath) or not d.isValidRepository()):
 				print(dependencyPath + ' was not found, cloning into dependency...')
-				if (self.config.has_option(p, 'freezed')):
+				if (overrideRef):
+					d.clone(branch = None)
+					d.checkout(overrideRef)
+				elif (self.config.has_option(p, 'freezed')):
 					d.clone(self.config[p]['freezed'])
 					d.checkout(self.config[p]['ref'])
 				else:
@@ -96,7 +105,10 @@ class GitDependenciesRepository(GitRepository):
 						sys.exit(task.exitCode())
 
 				print('Updating ' + dependencyPath)
-				if (self.config.has_option(p, 'freezed')):
+				if (overrideRef):
+					d.fetch('origin', overrideRef)
+					d.checkout(overrideRef)
+				elif (self.config.has_option(p, 'freezed')):
 					d.fetch('origin', self.config[p]['freezed'])
 					d.checkout(self.config[p]['ref'])
 				else:
@@ -104,6 +116,7 @@ class GitDependenciesRepository(GitRepository):
 					d.checkout(self.config[p]['ref'])
 					d.integrateChanges(self.config[p]['ref'])
 				d.updateSubmodules(recursive)
+
 
 		for p in sections:
 			# Continue with the next section, OS is filtered
@@ -115,7 +128,7 @@ class GitDependenciesRepository(GitRepository):
 			dependencyPath = os.path.join(self.repositoryPath, p)
 			if(recursive and not self.__isSymlink(dependencyPath)):
 				d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-				d.updateDependencies('*', recursive)
+				d.updateDependencies('*', recursive, [], overrides, allow_partial_overrides)
 
 		for p in sections:
 			# Continue with the next section, OS is filtered
@@ -144,7 +157,7 @@ class GitDependenciesRepository(GitRepository):
 					if (task.exitCode() != 0):
 						sys.exit(task.exitCode())
 
-	def dumpDependency(self, path = '*', recursive = False, dump_type = DumpType.Default, customString = ""):
+	def walkDependency(self, visitor, path = '*', recursive = False):
 		if (self.config == None):
 			return
 		cleanPath = self.__cleanPath(path)
@@ -159,38 +172,10 @@ class GitDependenciesRepository(GitRepository):
 				continue
 
 			d = GitDependenciesRepository(self.config[p]['url'], dependencyPath)
-			if (self.config.has_option(p, 'freezed')):
-				branch = self.config[p]['freezed']
-				upstream = d.revParse(self.config[p]['freezed'], upstream = True, abbreviate = True)
-			else:
-				branch = d.currentBranch(upstream = False)
-				upstream = d.currentBranch(upstream = True)
-			hash = d.currentSha()
-
-			if (dump_type == DumpType.Default):
-				print('Dependency ' + p + ' following ' + branch + ' (tracking: ' + upstream + ') is now at rev ' + hash)
-			elif (dump_type == DumpType.Header):
-				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				print('#define ' + sanitizedPath + '_BRANCH "' + branch + '"')
-				print('#define ' + sanitizedPath + '_REMOTE "' + upstream + '"')
-				print('#define ' + sanitizedPath + '_HASH "' + hash + '"')
-				print('')
-			elif (dump_type == DumpType.Custom):
-				dependencyName = p.split('/')[-1]
-				log = customString
-				log = log.replace("%dependencyName%", dependencyName)
-				log = log.replace("%dependency%", p)
-				log = log.replace("%branch%", branch)
-				log = log.replace("%remoteBranch%", upstream)
-				log = log.replace("%sha1%", hash)
-				sanitizedName = dependencyName.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				log = log.replace("%sanitizedName%", sanitizedName)
-				sanitizedPath = p.replace('/', '_').replace(' ', '_').replace('-', '_').upper()
-				log = log.replace("%sanitizedPath%", sanitizedPath)
-				print(log)
+			visitor.visit(repo = self, section = p, dependency = d)
 
 			if (recursive):
-				d.dumpDependency('*', recursive, dump_type, customString)
+				d.walkDependency(visitor, '*', recursive)
 
 	def setDependency(self, path, ref):
 		if (self.config == None):
