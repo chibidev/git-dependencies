@@ -128,15 +128,15 @@ function DependencySymlinkDumpOverridesTest() {
   local depSHA1=$(git rev-parse HEAD)
   cd ../dep2
   local dep2SHA1=$(git rev-parse HEAD)
-  cd ../dep3
+  cd ../dep/dep3
   local dep3SHA1=$(git rev-parse HEAD)
-  cd ..
+  cd ../..
 
   # Non-recursive
   expect git dependencies dump --dump-overrides | tee dump.txt
-  expect [[ "\"$(cat dump.txt)\"" == "{\"../dependency\":\ \"$depSHA1\",\ \"../dependency2\":\ \"$dep2SHA1\"}" ]]
+  expect [[ "\"$(cat dump.txt)\"" == "\"{\"../dependency\": \"$depSHA1\", \"../dependency2\": \"$dep2SHA1\"}\"" ]]
 
   # Recursive
   expect git dependencies dump --dump-overrides -r | tee dump.txt
-  expect [[ "\"$(cat dump.txt)\"" == "{\"../dependency\":\ \"$depSHA1\",\ \"../dependency3\":\ \"$dep3SHA1\",\ \"../dependency2\":\ \"$dep2SHA1\"}" ]]
+  expect [[ "\"$(cat dump.txt)\"" == "\"{\"../dependency\": \"$depSHA1\", \"../dependency2\": \"$dep2SHA1\", \"../dependency3\": \"$dep3SHA1\"}\"" ]]
 }
