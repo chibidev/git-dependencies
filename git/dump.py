@@ -82,4 +82,4 @@ class OverrideDump(Dump):
         self.depStore[url] = hash
 
     def finish(self):
-        print(json.dumps(self.depStore))
+        print(json.dumps(self.depStore, sort_keys = True))
